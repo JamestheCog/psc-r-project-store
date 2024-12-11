@@ -44,7 +44,7 @@ def fetch_data():
         while True:
             response = requests.post(os.getenv('GET_ROUTES'), headers = {'Content-Type' : 'application/json'},
                                     data = json.dumps({'authorization' : {'password' : os.getenv('PASSWORD')},
-                                                        'query' : {'arm' : data['arm'],
+                                                        'query' : {'arm' : data.get('query').get('arm'),
                                                                 'timestamp' : beginning_timestamp}}))
             if response.status_code != 200:
                 return(jsonify({'message' : 'something happened on the server...', 'status' : 500}), 500)
