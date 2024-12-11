@@ -12,6 +12,9 @@ from utils.funcs import offset_datetime
 # Define our blueprint and routes here:
 api_routes = Blueprint('api_routes', __name__)
 
+# Define a global variable data row here - so that one can fetch the data:
+data_row = None
+
 @api_routes.route('/fetch_data', methods = ['POST'])
 def fetch_data():
     '''
@@ -29,6 +32,7 @@ def fetch_data():
                                         I've gone ahead and chosen the timestamp 2024-12-05T13:30:00.000+08:00
                                         for now - basically the Thursday when I wrote this!
     '''
+    global data_row
     try:
         data = request.get_json()
         if data.get('authorization') is None:
@@ -48,13 +52,26 @@ def fetch_data():
                                                                 'timestamp' : beginning_timestamp}}))
             if response.status_code != 200:
                 return(jsonify({'message' : 'something happened on the server...', 'status' : 500}), 500)
-            response = response.json()
+            response = data_row
             if response.get('rowFound') is not None and not response.get('rowFound'): 
                 break
             db_info.append(response) ; beginning_timestamp = offset_datetime(response['timestamp'])
         return(jsonify({'result' : response, 'status' : 200}), 200)
     except Exception as e:
         return(jsonify({'result' : str(e), 'status' : 500}), 500)
+
+@api_routes.get('/proxy_fetch', methods = ['POST'])
+def proxy_fetch():
+    '''
+    A proxy route for fetching the data returned by the Tiles database.  This route is meant to be used by the above
+    fetch_data route.
+    '''
+    global data_row
+    try:
+        data_row = request.json()
+    except Exception as e:
+        data_row = None
+
 
 @api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
