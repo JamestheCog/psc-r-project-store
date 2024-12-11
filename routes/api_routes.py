@@ -56,7 +56,7 @@ def fetch_data():
     except Exception as e:
         return(jsonify({'result' : str(e), 'status' : 500}), 500)
 
-@api_routes('/update_patient', methods = ['POST'])
+@api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
     '''
     Given a list of patient particulars and their survey results, use them to update our patients'
