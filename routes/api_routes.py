@@ -32,13 +32,13 @@ def fetch_data():
     try:
         data = request.get_json()
         if data.get('authorization') is None:
-            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}))
+            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
         if data.get('authorization').get('password') != os.getenv('PASSWORD'): 
-            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}))
+            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
         if data.get('query') is None:
-            return(jsonify({'message' : 'missing query information', 'status' : 405}))
+            return(jsonify({'message' : 'missing query information', 'status' : 405}), 405)
         if int(data.get('query').get('arm')) not in range(1, 4):
-            return(jsonify({'message' : '"arm" out of range', 'status' : 400}))
+            return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
         
         db_info, beginning_timestamp = [], '2024-12-05T13:30:00.000+08:00'
         while True:
@@ -47,14 +47,14 @@ def fetch_data():
                                                         'query' : {'arm' : data['arm'],
                                                                 'timestamp' : beginning_timestamp}}))
             if response.status_code != 200:
-                return(jsonify({'message' : 'something happened on the server...', 'status' : 500}))
+                return(jsonify({'message' : 'something happened on the server...', 'status' : 500}), 500)
             response = response.json()
             if response.get('rowFound') is not None and not response.get('rowFound'): 
                 break
             db_info.append(response) ; beginning_timestamp = offset_datetime(response['timestamp'])
-        return(jsonify({'result' : response, 'status' : 200}))
-    except:
-        return(jsonify({'result' : 'something bad happened...', 'status' : 500}))
+        return(jsonify({'result' : response, 'status' : 200}), 200)
+    except Exception as e:
+        return(jsonify({'result' : str(e), 'status' : 500}), 500)
 
 @api_routes('/update_patient', methods = ['POST'])
 def update_patient():
@@ -64,15 +64,15 @@ def update_patient():
     '''
     data = request.get_json()
     if data.get('authorization') is None:
-        return(jsonify({'message' : 'Missing authorization information', 'status' : 400}))
+        return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
     if data.get('authorization').get('password') != os.getenv('PASSWORD'): 
-        return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}))
+        return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
     if data.get('arm') not in range(1, 4):
-        return(jsonify({'message' : '"arm" out of range', 'status' : 400}))
+        return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
     if data.get('patient') is None:
-        return(jsonify({'message' : 'Missing patient credentials to update information for', 'status' : 400}))
+        return(jsonify({'message' : 'Missing patient credentials to update information for', 'status' : 400}), 400)
     if data.get('to_update') is None:
         return(jsonify({'message' : 'Missing information to update original patient information with', 
-                        'status' : 400}))
-    return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}))
+                        'status' : 400}), 400)
+    return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
     
