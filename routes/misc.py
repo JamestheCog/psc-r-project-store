@@ -3,12 +3,12 @@ A helper Python file for containing miscellaneous routes for this proxy applicat
 '''
 
 from flask import Blueprint
-miscellaneous_routes = Blueprint('miscellaneous_routes', __name__)
+misc = Blueprint('miscellaneous_routes', __name__)
 
-@miscellaneous_routes.route('/ping', methods = ['GET'])
+@misc.route('/ping', methods = ['GET'])
 def ping():
     '''
-    Return the string "pong" - meant to be used by a Chron job for keeping the application
+    Return the string "warm me up!" - meant to be used by a Chron job for keeping the application
     warm!
     '''
-    return('pong', 200)
+    return('warm me up!', 200)
