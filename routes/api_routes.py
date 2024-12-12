@@ -54,7 +54,7 @@ def fetch_data():
                 return(jsonify({'message' : 'something happened on the server...', 'status' : 500}), 500)
             data_to_share = shared_data
             print(data_to_share)
-            if len(data_to_share) <= 1 or data_to_share is None: 
+            if data_to_share is None or data_to_share.get('timestamp') is None or data_to_share.get('timestamp') == '': 
                 break
             db_info.append(data_to_share) ; beginning_timestamp = data_to_share.get('timestamp')
             print(beginning_timestamp)
