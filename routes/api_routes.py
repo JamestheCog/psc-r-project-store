@@ -67,7 +67,7 @@ def proxy_fetch():
     '''
     global shared_data
     try:
-        shared_data = request.json()
+        shared_data = request.get_json()
     except Exception as e:
         return({'message' : f'something bad happened: "{e}"', 'status_code' : 500}, 500)
 
