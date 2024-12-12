@@ -68,7 +68,8 @@ def proxy_fetch():
     global shared_data
     try:
         shared_data = request.get_json()
-        return(jsonify({'message' : 'data transfer successful!'}), 200)
+        return(jsonify({'message' : 'data transfer successful!',
+                        'data_returned' : shared_data}), 200)
     except Exception as e:
         return({'message' : f'something bad happened: "{e}"', 'status_code' : 500}, 500)
 
