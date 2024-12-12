@@ -52,13 +52,13 @@ def fetch_data():
                                                                 'timestamp' : beginning_timestamp}}))
             if response.status_code != 200:
                 return(jsonify({'message' : 'something happened on the server...', 'status' : 500}), 500)
-            response = shared_data
-            if len(response) <= 1: 
+            data_to_share = shared_data
+            if len(data_to_share) <= 1: 
                 break
-            db_info.append(response) ; beginning_timestamp = offset_datetime(response['timestamp'])
-        return(jsonify({'result' : response, 'status' : 200}), 200)
+            db_info.append(data_to_share) ; beginning_timestamp = offset_datetime(data_to_share['timestamp'])
+        return(jsonify({'result' : db_info, 'status' : 200}), 200)
     except Exception as e:
-        return(jsonify({'result' : str(e), 'status' : 500}), 500)
+        return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
 
 @api_routes.route('/proxy_fetch', methods = ['POST'])
 def proxy_fetch():
