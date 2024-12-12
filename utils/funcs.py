@@ -14,4 +14,4 @@ def offset_datetime(timeset_object, second_offset = 1):
     '''
     new_timeset = isoparse(timeset_object) + timedelta(seconds = second_offset)
     new_timeset = new_timeset.isoformat() ; plus_index = new_timeset.index('+')
-    return(new_timeset[:plus_index] + '.000' + new_timeset[plus_index:])
+    return(new_timeset)
