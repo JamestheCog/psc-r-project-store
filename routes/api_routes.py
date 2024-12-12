@@ -53,7 +53,7 @@ def fetch_data():
             if response.status_code != 200:
                 return(jsonify({'message' : 'something happened on the server...', 'status' : 500}), 500)
             data_to_share = shared_data
-            if len(data_to_share) <= 1: 
+            if len(data_to_share) or data_to_share is None <= 1: 
                 break
             db_info.append(data_to_share) ; beginning_timestamp = offset_datetime(data_to_share.get('timestamp'))
         return(jsonify({'result' : db_info, 'status' : 200}), 200)
