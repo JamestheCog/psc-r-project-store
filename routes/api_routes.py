@@ -12,8 +12,8 @@ from utils.funcs import offset_datetime
 # Define our blueprint and routes here:
 api_routes = Blueprint('api_routes', __name__)
 
-# Create a variable to transmit data between the two routes:
-shared_data = None
+# Define a global variable data row here - so that one can fetch the data:
+data_row = None
 
 @api_routes.route('/fetch_data', methods = ['POST'])
 def fetch_data():
@@ -59,15 +59,6 @@ def fetch_data():
         return(jsonify({'result' : response, 'status' : 200}), 200)
     except Exception as e:
         return(jsonify({'result' : str(e), 'status' : 500}), 500)
-    
-@api_routes.route('/proxy_fetch', methods = ['POST'])
-def proxy_fetch():
-    global shared_data
-    try:
-        shared_data = request.json()
-    except Exception as e:
-        return({'message' : f'something happened while transmitting data: "{e}"',
-                'code' : 500}, 500)
 
 @api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
