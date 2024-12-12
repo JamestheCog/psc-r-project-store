@@ -56,6 +56,7 @@ def fetch_data():
             if len(data_to_share) <= 1 or data_to_share is None: 
                 break
             db_info.append(data_to_share) ; print(beginning_timestamp) ; beginning_timestamp = offset_datetime(data_to_share.get('timestamp'))
+            print(beginning_timestamp) ; break
         return(jsonify({'result' : db_info, 'status' : 200}), 200)
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
