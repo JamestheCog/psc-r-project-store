@@ -56,6 +56,7 @@ def fetch_data():
             print(data_to_share)
             if data_to_share is None or data_to_share.get('timestamp') is None or data_to_share.get('timestamp') == '': 
                 break
+            print(beginning_timestamp)
             db_info.append(data_to_share) ; beginning_timestamp = data_to_share.get('timestamp')
             print(beginning_timestamp)
         return(jsonify({'result' : db_info, 'status' : 200}), 200)
