@@ -56,6 +56,8 @@ def fetch_data():
             data_to_share = shared_data
             if data_to_share is None or data_to_share.get('timestamp') is None or data_to_share.get('timestamp') == '': 
                 break
+            print(f'Timestamp: {beginning_timestamp}')
+            print(data_to_share)
             db_info.append(data_to_share) ; beginning_timestamp = int(data_to_share.get('timestamp'))
         return(jsonify({'result' : db_info, 'status' : 200}), 200)
     except Exception as e:
@@ -73,7 +75,7 @@ def proxy_fetch():
                         'data_returned' : shared_data}), 200)
     except Exception as e:
         return({'message' : f'something bad happened: "{e}"', 'status_code' : 500}, 500)
-
+    
 # -- END --
 
 # -- ROUTES FOR AUGMENTING DATA --
