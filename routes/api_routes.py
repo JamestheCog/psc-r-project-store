@@ -33,29 +33,30 @@ def fetch_data():
                                         I've gone ahead and chosen the timestamp 2024-12-05T13:30:00.000+08:00
                                         for now - basically the Thursday when I wrote this!
     '''
-    global shared_data
     try:
         data = request.get_json()
-        if data.get('authorization') is None:
+        if data['authorization'] is None:
             return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
-        if data.get('authorization').get('password') != os.getenv('PASSWORD'): 
+        if data['authorization']['password'] != os.getenv('PASSWORD'): 
             return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
-        if data.get('query') is None:
+        if data['query'] is None:
             return(jsonify({'message' : 'missing query information', 'status' : 405}), 405)
-        if int(data.get('query').get('arm')) not in range(1, 4):
+        if int(data['query']['arm']) not in range(1, 4):
             return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
         
         connection = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
                                                               os.getenv('SQLITECLOUD_ADMIN_KEY')))
         cursor, table_name = connection.cursor(), determine_table_name(data.get('query').get('arm'))
-        cursor.execute('USE DATABASE %s' % os.getenv('DATABASE_NAME'))
-        cursor.execute('PRAGMA table_info(%s)' % table_name) ; table_columns = [i[1] for i in cursor.fetchall()]
-        cursor.execute('SELECT * FROM %s' % table_name) ; patient_responses = cursor.fetchall()
-        to_return = [dict(zip(table_columns, i)) for i in patient_responses]
-        connection.close()
+        database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
+        pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()]
+        fetch_query = f'SELECT * FROM {table_name}' ; cursor.execute(fetch_query)
+        to_return = [dict(zip(column_names, i)) for i in cursor.fetchall()]
         return(jsonify({'message' : 'Data fetching successful!', 'data' : to_return}), 200)
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
+    finally:
+        if connection:
+            connection.close()
 
 @api_routes.route('/upload', methods = ['POST'])
 def upload():
@@ -65,29 +66,32 @@ def upload():
     '''
     try:
         data = request.get_json()
-        print(data)
-        if data.get('authorization') is None:
+        if data['authorization'] is None:
             return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
-        if data.get('authorization').get('password') != os.getenv('PASSWORD'): 
+        if data['authorization']['password'] != os.getenv('PASSWORD'): 
             return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
-        if data.get('query') is None:
+        if data['query'] is None:
             return(jsonify({'message' : 'missing query information', 'status' : 405}), 405)
-        if data.get('to_upload') is None:
+        if data['to_upload'] is None:
             return(jsonify({'message' : 'missing information to upload', 'status' : 405}), 405)
-        if int(data.get('query').get('arm')) not in range(1, 4):
+        if int(data['query']['arm']) not in range(1, 4):
             return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
         
         # Upload the data here:
         connection = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
                                                               os.getenv('SQLITECLOUD_ADMIN_KEY')))
-        table_name = determine_table_name(data.get('query').get('arm'))
-        connection.execute('USE DATABASE %s' % os.getenv('DATABASE_NAME')) ; cursor = connection.cursor()
-        cursor.execute('PRAGMA table_info(%s)' % table_name) ; column_names = [i[1] for i in cursor.fetchall()]
-        cursor.execute('INSERT INTO %s %s VALUES %s' % (table_name, f"({', '.join(column_names)})", f"({', '.join(data['to_upload'])})"))
-        connection.close()
+        cursor, table_name = connection.cursor(), determine_table_name(data['query']['arm'])
+        database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
+        pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()]
+        insertion_query = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * len(column_names))})"
+        cursor.execute(insertion_query, tuple([str(data['to_upload'][i]) for i in column_names]))
+        connection.commit()
         return(jsonify({'message' : 'data successfully uploaded onto the database!', 'code' : 200}), 200)
-    except Exception as e:
+    except (Exception, sqlitecloud.Error) as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
+    finally:
+        if connection:
+            connection.close()
 
 @api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
