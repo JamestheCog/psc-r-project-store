@@ -48,10 +48,10 @@ def fetch_data():
                                                               os.getenv('SQLITECLOUD_ADMIN_KEY')))
         cursor, table_name = connection.cursor(), determine_table_name(data.get('query').get('arm'))
         database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
-        pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()]
-        fetch_query = f'SELECT * FROM {table_name}' ; cursor.execute(fetch_query)
-        to_return = [dict(zip(column_names, i)) for i in cursor.fetchall()]
-        return(jsonify({'message' : 'Data fetching successful!', 'data' : to_return}), 200)
+        fetch_query = f'SELECT * FROM {table_name}' ; cursor.execute(fetch_query) ; to_return = cursor.fetchall()
+        pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()] 
+        print(column_names) ; print(to_return)
+        return(jsonify({'message' : 'Data fetching successful!', 'data' : [dict(zip(column_names, i)) for i in to_return]}), 200)
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
     finally:
@@ -111,5 +111,10 @@ def update_patient():
     if data.get('to_update') is None:
         return(jsonify({'message' : 'Missing information to update original patient information with', 
                         'status' : 400}), 400)
+    
+    # Do the data updating here:
+    connection = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
+                                                              os.getenv('SQLITECLOUD_ADMIN_KEY')))
+    cursor = connection.cursor()
     return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
     
