@@ -4,7 +4,12 @@ A Python helper file to store helper functions.
 
 from datetime import timedelta
 from dateutil.parser import isoparse
-import re
+import re, os
+
+# === NOT USED FOR NOW ===
+#
+# Tuesday, 17th December, 2024: these helpers were originally meant for when we were trying to use Tiles - the government alternative to 
+#                               a third-party alternative like sqlitecloud.  
 
 def offset_datetime(timeset_object, second_offset = 30):
     '''
@@ -27,3 +32,19 @@ def convert_date(formsg_time):
     I propose just removing all non-convertible characters for now.
     '''
     return(int(re.sub('(-|T|:|\\+|\\.)', '', formsg_time)))
+
+# === END ===
+
+def determine_table_name(query_arm):
+    '''
+    Given an arm in the form of a number, return the appropriate 
+    table name.
+    '''
+    converted_arm = int(query_arm)
+    if converted_arm == 3:
+        return(os.getenv('ARM_3_NAME'))
+    if converted_arm == 2:
+        return(os.getenv('ARM_2_NAME'))
+    if converted_arm == 1:
+        return(os.getenv('ARM_1_NAME'))
+    return('<unknown>')
