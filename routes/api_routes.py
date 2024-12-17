@@ -50,13 +50,10 @@ def fetch_data():
         database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
         fetch_query = f'SELECT * FROM {table_name}' ; cursor.execute(fetch_query) ; to_return = cursor.fetchall()
         pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()] 
-        print(column_names) ; print(to_return)
+        connection.close()
         return(jsonify({'message' : 'Data fetching successful!', 'data' : [dict(zip(column_names, i)) for i in to_return]}), 200)
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
-    finally:
-        if connection:
-            connection.close()
 
 @api_routes.route('/upload', methods = ['POST'])
 def upload():
@@ -85,13 +82,10 @@ def upload():
         pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()]
         insertion_query = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * len(column_names))})"
         cursor.execute(insertion_query, tuple([str(data['to_upload'][i]) for i in column_names]))
-        connection.commit()
+        connection.commit() ; connection.close()
         return(jsonify({'message' : 'data successfully uploaded onto the database!', 'code' : 200}), 200)
     except (Exception, sqlitecloud.Error) as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
-    finally:
-        if connection:
-            connection.close()
 
 @api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
