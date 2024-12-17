@@ -63,7 +63,6 @@ def upload():
     '''
     try:
         data = request.get_json()
-        print(data)
         if data['authorization'] is None:
             return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
         if data['authorization']['password'] != os.getenv('PASSWORD'): 
