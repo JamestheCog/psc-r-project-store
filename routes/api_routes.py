@@ -4,10 +4,10 @@ on Plumber.
 '''
 
 from flask import Blueprint, request, jsonify
-import os, requests, json
+import os, requests, json, sqlitecloud
 
 # Then, import our user helpers here:
-from utils.funcs import convert_date
+from utils.funcs import determine_table_name
 
 # Define our blueprint and routes here:
 api_routes = Blueprint('api_routes', __name__)
@@ -15,7 +15,7 @@ api_routes = Blueprint('api_routes', __name__)
 # Define a global variable data row here - so that one can fetch the data:
 shared_data = None
 
-# -- ROUTES FOR FETCHING DATA --
+# -- ROUTES FOR FETCHING AND UPLOADING DATA --
 @api_routes.route('/fetch_data', methods = ['POST'])
 def fetch_data():
     '''
@@ -45,42 +45,20 @@ def fetch_data():
         if int(data.get('query').get('arm')) not in range(1, 4):
             return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
         
-        db_info, beginning_timestamp = [], 0
-        while True:
-            response = requests.post(os.getenv('GET_ROUTES'), headers = {'Content-Type' : 'application/json'},
-                                    data = json.dumps({'authorization' : {'password' : os.getenv('PASSWORD')},
-                                                        'query' : {'arm' : data.get('query').get('arm'),
-                                                                'timestamp' : beginning_timestamp}}))
-            if response.status_code != 200:
-                return(jsonify({'message' : 'something happened on the server...', 'status' : 500}), 500)
-            data_to_share = shared_data
-            if data_to_share is None or data_to_share.get('timestamp') is None or data_to_share.get('timestamp') == '': 
-                break
-            print(f'Timestamp: {beginning_timestamp}')
-            print(data_to_share)
-            db_info.append(data_to_share) ; beginning_timestamp = int(data_to_share.get('timestamp'))
-        return(jsonify({'result' : db_info, 'status' : 200}), 200)
+        connection = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
+                                                              os.getenv('SQLITECLOUD_ADMIN_KEY')))
+        cursor, table_name = connection.cursor(), determine_table_name(data.get('query').get('arm'))
+        cursor.execute('USE DATABASE %s' % os.getenv('DATABASE_NAME'))
+        cursor.execute('PRAGMA table_info(%s)' % table_name) ; table_columns = [i[1] for i in cursor.fetchall()]
+        cursor.execute('SELECT * FROM %s' % table_name) ; patient_responses = cursor.fetchall()
+        to_return = [dict(zip(table_columns, i)) for i in patient_responses]
+        connection.close()
+        return(jsonify({'message' : 'Data fetching successful!', 'data' : to_return}), 200)
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
 
-@api_routes.route('/proxy_fetch', methods = ['POST'])
-def proxy_fetch():
-    '''
-    A route for Plumber to access to send data to this proxy application:
-    '''
-    global shared_data
-    try:
-        shared_data = request.get_json()
-        return(jsonify({'message' : 'data transfer successful!',
-                        'data_returned' : shared_data}), 200)
-    except Exception as e:
-        return({'message' : f'something bad happened: "{e}"', 'status_code' : 500}, 500)
-    
-# -- END --
-
-# -- ROUTES FOR AUGMENTING DATA --
-@api_routes.route('/convert_and_upload', methods = ['POST'])
-def convert_and_upload():
+@api_routes.route('/upload', methods = ['POST'])
+def upload():
     '''
     Given a request from one of the publication arms, process its datetime before uploading
     it to the proper Tiles database
@@ -97,17 +75,18 @@ def convert_and_upload():
             return(jsonify({'message' : 'missing information to upload', 'status' : 405}), 405)
         if int(data.get('query').get('arm')) not in range(1, 4):
             return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
-        converted_datetime, data_to_upload = convert_date(data['to_convert']['datetime']), data['to_upload']
-        data_to_upload.update({'timestamp' : converted_datetime})
-        json_to_send = {'upload_params' : {'arm' : data['query']['arm']}, 
-                        'authorization' : {'password' : os.getenv('PASSWORD')},
-                        'to_upload' : data_to_upload}
-        requests.post(os.getenv('UPLOAD_ROUTES'), header = {'Content-Type' : 'application/json'}, data = json.dumps(json_to_send))
-        return(jsonify({'message' : 'data successfully uploaded onto Tiles!', 'code' : 200}), 200)
+        
+        # Upload the data here:
+        connection = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
+                                                              os.getenv('SQLITECLOUD_ADMIN_KEY')))
+        table_name = determine_table_name(data.get('query').get('arm'))
+        connection.execute('USE DATABASE %s' % os.getenv('DATABASE_NAME')) ; cursor = connection.cursor()
+        cursor.execute('PRAGMA table_info(%s)' % table_name) ; column_names = [i[1] for i in cursor.fetchall()]
+        cursor.execute('INSERT INTO %s %s VALUES %s' % (table_name, f"({', '.join(column_names)})", f"({', '.join(data['to_upload'])})"))
+        connection.close()
+        return(jsonify({'message' : 'data successfully uploaded onto the database!', 'code' : 200}), 200)
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
-
-
 
 @api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
