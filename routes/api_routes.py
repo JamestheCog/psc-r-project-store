@@ -45,7 +45,7 @@ def fetch_data():
         if int(data.get('query').get('arm')) not in range(1, 4):
             return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
         
-        db_info, beginning_timestamp = [], '2024-12-05T13:30:00.000+08:00'
+        db_info, beginning_timestamp = [], 0
         while True:
             response = requests.post(os.getenv('GET_ROUTES'), headers = {'Content-Type' : 'application/json'},
                                     data = json.dumps({'authorization' : {'password' : os.getenv('PASSWORD')},
