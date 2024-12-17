@@ -82,7 +82,8 @@ def upload():
         pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()]
         insertion_query = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * len(column_names))})"
         cursor.execute(insertion_query, tuple([str(data['to_upload'][i]) for i in column_names]))
-        print(tuple([str(data['to_upload'][i]) for i in column_names])) ; connection.commit() ; connection.close()
+        print(data['to_upload'])
+        print(tuple([data['to_upload'][i] for i in column_names])) ; connection.commit() ; connection.close()
         return(jsonify({'message' : 'data successfully uploaded onto the database!', 'code' : 200}), 200)
     except (Exception, sqlitecloud.Error) as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
