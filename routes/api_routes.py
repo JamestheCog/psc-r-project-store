@@ -7,7 +7,7 @@ from flask import Blueprint, request, jsonify
 import os, requests, json
 
 # Then, import our user helpers here:
-from utils.funcs import offset_datetime
+from utils.funcs import convert_date
 
 # Define our blueprint and routes here:
 api_routes = Blueprint('api_routes', __name__)
@@ -15,6 +15,7 @@ api_routes = Blueprint('api_routes', __name__)
 # Define a global variable data row here - so that one can fetch the data:
 shared_data = None
 
+# -- ROUTES FOR FETCHING DATA --
 @api_routes.route('/fetch_data', methods = ['POST'])
 def fetch_data():
     '''
@@ -53,12 +54,9 @@ def fetch_data():
             if response.status_code != 200:
                 return(jsonify({'message' : 'something happened on the server...', 'status' : 500}), 500)
             data_to_share = shared_data
-            print(data_to_share)
             if data_to_share is None or data_to_share.get('timestamp') is None or data_to_share.get('timestamp') == '': 
                 break
-            print(beginning_timestamp)
-            db_info.append(data_to_share) ; beginning_timestamp = data_to_share.get('timestamp')
-            print(beginning_timestamp)
+            db_info.append(data_to_share) ; beginning_timestamp = int(data_to_share.get('timestamp'))
         return(jsonify({'result' : db_info, 'status' : 200}), 200)
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
@@ -75,6 +73,39 @@ def proxy_fetch():
                         'data_returned' : shared_data}), 200)
     except Exception as e:
         return({'message' : f'something bad happened: "{e}"', 'status_code' : 500}, 500)
+
+# -- END --
+
+# -- ROUTES FOR AUGMENTING DATA --
+@api_routes.route('/convert_and_upload', methods = ['POST'])
+def convert_and_upload():
+    '''
+    Given a request from one of the publication arms, process its datetime before uploading
+    it to the proper Tiles database
+    '''
+    try:
+        data = request.get_json()
+        if data.get('authorization') is None:
+            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
+        if data.get('authorization').get('password') != os.getenv('PASSWORD'): 
+            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
+        if data.get('query') is None:
+            return(jsonify({'message' : 'missing query information', 'status' : 405}), 405)
+        if data.get('to_upload') is None:
+            return(jsonify({'message' : 'missing information to upload', 'status' : 405}), 405)
+        if int(data.get('query').get('arm')) not in range(1, 4):
+            return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
+        converted_datetime, data_to_upload = convert_date(data['to_convert']['datetime']), data['to_upload']
+        data_to_upload.update({'timestamp' : converted_datetime})
+        json_to_send = {'upload_params' : {'arm' : data['query']['arm']}, 
+                        'authorization' : {'password' : os.getenv('PASSWORD')},
+                        'to_upload' : data_to_upload}
+        requests.post(os.getenv('UPLOAD_ROUTES'), header = {'Content-Type' : 'application/json'}, data = json.dumps(json_to_send))
+        return(jsonify({'message' : 'data successfully uploaded onto Tiles!', 'code' : 200}), 200)
+    except Exception as e:
+        return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
+
+
 
 @api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
