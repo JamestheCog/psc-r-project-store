@@ -63,7 +63,6 @@ def upload():
     '''
     try:
         data = request.get_json()
-        print(type(data))
         if data['authorization'] is None:
             return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
         if data['authorization']['password'] != os.getenv('PASSWORD'): 
@@ -83,7 +82,6 @@ def upload():
         pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()]
         insertion_query = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * len(column_names))})"
         cursor.execute(insertion_query, tuple([str(data['to_upload'][i]) for i in column_names]))
-        print(data['to_upload'])
         print(tuple([data['to_upload'][i] for i in column_names])) ; connection.commit() ; connection.close()
         return(jsonify({'message' : 'data successfully uploaded onto the database!', 'code' : 200}), 200)
     except (Exception, sqlitecloud.Error) as e:
