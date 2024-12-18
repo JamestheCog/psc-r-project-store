@@ -48,7 +48,8 @@ def fetch_data():
                                                               os.getenv('SQLITECLOUD_ADMIN_KEY')))
         cursor, table_name = connection.cursor(), determine_table_name(data.get('query').get('arm'))
         database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
-        fetch_query = f'SELECT * FROM {table_name}' ; cursor.execute(fetch_query) ; to_return = cursor.fetchall()
+        fetch_query = f'SELECT * FROM {table_name}' ; cursor.execute(fetch_query) ; to_return = cursor.fetchall() ; cursor.close()
+        cursor = connection.cursor()
         pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()] 
         connection.close()
         return(jsonify({'message' : 'Data fetching successful!', 'data' : [dict(zip(column_names, i)) for i in to_return]}), 200)
