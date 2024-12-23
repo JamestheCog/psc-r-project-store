@@ -82,8 +82,8 @@ def upload():
         database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
         pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()]
         insertion_query = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * len(column_names))})"
-        cursor.execute(insertion_query, tuple([str(data['to_upload'][i]) for i in column_names]))
-        print(tuple([data['to_upload'][i] for i in column_names])) ; connection.commit() ; connection.close()
+        cursor.execute(insertion_query, tuple([str(data['to_upload'][i]).lower() for i in column_names]))
+        connection.commit() ; connection.close()
         return(jsonify({'message' : 'data successfully uploaded onto the database!', 'code' : 200}), 200)
     except (Exception, sqlitecloud.Error) as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
@@ -94,22 +94,29 @@ def update_patient():
     Given a list of patient particulars and their survey results, use them to update our patients'
     information and / or other pieces of information where necessary.  THIS FUNCTION IS NOT FINISHED YET!
     '''
-    data = request.get_json()
-    if data.get('authorization') is None:
-        return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
-    if data.get('authorization').get('password') != os.getenv('PASSWORD'): 
-        return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
-    if data.get('arm') not in range(1, 4):
-        return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
-    if data.get('patient') is None:
-        return(jsonify({'message' : 'Missing patient credentials to update information for', 'status' : 400}), 400)
-    if data.get('to_update') is None:
-        return(jsonify({'message' : 'Missing information to update original patient information with', 
-                        'status' : 400}), 400)
-    
-    # Do the data updating here:
-    connection = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
-                                                              os.getenv('SQLITECLOUD_ADMIN_KEY')))
-    cursor = connection.cursor()
-    return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
-    
+    try:
+        data = request.get_json()
+        if data['authorization'] is None:
+            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
+        if data['authorization']['password'] != os.getenv('PASSWORD'): 
+            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
+        if data['patient'] is None:
+            return(jsonify({'message' : 'Missing patient credentials to update information for', 'status' : 400}), 400)
+        if data['to_update'] is None:
+            return(jsonify({'message' : 'Missing information to update original patient information with', 
+                            'status' : 400}), 400)
+        
+        # Do the data updating here:
+        conn = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
+                                                                os.getenv('SQLITECLOUD_ADMIN_KEY')))
+        cursor, table_name = conn.cursor(), determine_table_name(data['patient']['arm']) ; data['patient'].pop('arm')
+        database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
+        database_update = ', '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", data['to_update'].items())))
+        database_entry = ' AND '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", data['patient'].items())))
+        update_query = f"UPDATE {table_name} SET {database_update} WHERE {database_entry}" 
+        print(update_query)
+        cursor.execute(update_query) ; conn.commit() ; conn.close()
+        return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
+    except (Exception, sqlitecloud.Error) as e:
+        return(jsonify({'message' : 'something bad happened while updating the database...',
+                        'error' : str(e), 'code' : 500}), 500)
