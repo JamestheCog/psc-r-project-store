@@ -111,10 +111,9 @@ def update_patient():
                                                                 os.getenv('SQLITECLOUD_ADMIN_KEY')))
         cursor, table_name = conn.cursor(), determine_table_name(data['patient']['arm']) ; data['patient'].pop('arm')
         database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
-        database_update = ', '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", data['to_update'].items())))
+        database_update = ', '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", [(i[0], str(i[1]).replace("'", "''")) for i in data['to_update'].items()])))
         database_entry = ' AND '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", data['patient'].items())))
         update_query = f"UPDATE {table_name} SET {database_update} WHERE {database_entry}" 
-        print(update_query)
         cursor.execute(update_query) ; conn.commit() ; conn.close()
         return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
     except (Exception, sqlitecloud.Error) as e:
