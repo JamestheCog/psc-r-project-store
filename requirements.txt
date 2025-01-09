@@ -6,3 +6,4 @@ python-dateutil==2.8.2
 requests==2.29.0
 sqlitecloud==0.0.83
 Frozen-Flask==1.0.2
+formsg-python-sdk==0.1.13

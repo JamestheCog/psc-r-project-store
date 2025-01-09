@@ -40,11 +40,11 @@ def determine_table_name(query_arm):
     Given an arm in the form of a number, return the appropriate 
     table name.
     '''
-    converted_arm = int(query_arm)
-    if converted_arm == 3:
+    converted_arm = query_arm.lower()
+    if converted_arm.startswith('SPRinT'):
         return(os.getenv('ARM_3_NAME'))
-    if converted_arm == 2:
+    if 'palliative' in converted_arm:
         return(os.getenv('ARM_2_NAME'))
-    if converted_arm == 1:
+    if 'usual care' in converted_arm:
         return(os.getenv('ARM_1_NAME'))
     return('<unknown>')
