@@ -45,7 +45,7 @@ def fetch_data():
 
 # -- Form.gov.sg uploads --
 @api_routes.route('/main_form_uploads', methods = ['POST'])
-def test_upload():
+def main_form_uploads():
     '''
     Try printing data using the SDK provided by formsg.  Use the test form first.
     '''
@@ -60,16 +60,16 @@ def test_upload():
         print(decrypted)
         
         # Upload the data here:
-        cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
+        cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm']) ; print(table_name)
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
         to_upload = '(' + ', '.join([decrypted.get(i, '?') for i in table_columns]) + ')'
-        cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES {to_upload}")
+        cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({to_upload})")
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
     except WebhookAuthenticateException as e:
         return(jsonify({'message' : 'Bah!  Unauthorized request!'}, 401))
     except Exception as e:
-        return(jsonify({'message' : 'Something bad happened...', 'error' : e}), 500)
+        return(jsonify({'message' : 'Something bad happened...', 'error' : str(e)}), 500)
 
 @api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
