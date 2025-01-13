@@ -3,36 +3,23 @@ A blueprint to contain routes for updating, fetching, and deleting data from the
 on Plumber.
 '''
 
-from flask import Blueprint, request, jsonify, Response
-import os, requests, json, sqlitecloud
+from flask import Blueprint, request, jsonify
+import os, json, sqlitecloud
 import formsg
 from formsg.exceptions import WebhookAuthenticateException
 
 # Then, import our user helpers here:
-from utils.funcs import determine_table_name
+from utils.database import map_question_to_id, determine_table_name
 
-# Define our blueprint and routes here:
+# Define our blueprint and routes here; also load in the production version of formsg's SDK too:
 api_routes = Blueprint('api_routes', __name__)
 sdk = formsg.FormSdk('PRODUCTION')
-
 
 # -- ROUTES FOR FETCHING AND UPLOADING DATA --
 @api_routes.route('/fetch_data', methods = ['POST'])
 def fetch_data():
     '''
-    Given a POST request to this route, fetch data from 
-    the Tiles database, but only after validation:
-
-    Note (Friday, 6th November, 2024):  apparently, there's no way to add an auto-incrementing counter 
-                                        to Tiles or get form.gov.sg to do something like this.  I have 
-                                        another idea - we'll use dates instead.  We'll set a pretty 
-                                        early date - say the end of this year - before using it to 
-                                        fetch the next item.  We'll increment the time by one second 
-                                        until such time we end up with no more data (hence the infinite
-                                        loop - it'll break out of the loop when there's no more data).
-
-                                        I've gone ahead and chosen the timestamp 2024-12-05T13:30:00.000+08:00
-                                        for now - basically the Thursday when I wrote this!
+    Given a POST request to this route, fetch data from the sqlitecloud database.
     '''
     try:
         data = request.get_json()
@@ -45,8 +32,7 @@ def fetch_data():
         if int(data['query']['arm']) not in range(1, 4):
             return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
         
-        connection = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
-                                                              os.getenv('SQLITECLOUD_ADMIN_KEY')))
+        connection = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
         cursor, table_name = connection.cursor(), determine_table_name(data.get('query').get('arm'))
         database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
         fetch_query = f'SELECT * FROM {table_name}' ; cursor.execute(fetch_query) ; to_return = cursor.fetchall() ; cursor.close()
@@ -57,55 +43,32 @@ def fetch_data():
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
 
-@api_routes.route('/upload', methods = ['POST'])
-def upload():
-    '''
-    Given a request from one of the publication arms, process its datetime before uploading
-    it to the proper Tiles database
-    '''
-    try:
-        data = request.get_json()
-        if data['authorization'] is None:
-            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
-        if data['authorization']['password'] != os.getenv('FIRST_PASSWORD'): 
-            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
-        if data['query'] is None:
-            return(jsonify({'message' : 'missing query information', 'status' : 405}), 405)
-        if data['to_upload'] is None:
-            return(jsonify({'message' : 'missing information to upload', 'status' : 405}), 405)
-        if int(data['query']['arm']) not in range(1, 4):
-            return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
-        
-        # Upload the data here:
-        connection = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
-                                                              os.getenv('SQLITECLOUD_ADMIN_KEY')))
-        cursor, table_name = connection.cursor(), determine_table_name(data['query']['arm'])
-        database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
-        pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()]
-        insertion_query = f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * len(column_names))})"
-        cursor.execute(insertion_query, tuple([str(data['to_upload'][i]).lower() for i in column_names]))
-        connection.commit() ; connection.close()
-        return(jsonify({'message' : 'data successfully uploaded onto the database!', 'code' : 200}), 200)
-    except (Exception, sqlitecloud.Error) as e:
-        return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
-
-@api_routes.route('/test_upload', methods = ['POST'])
+# -- Form.gov.sg uploads --
+@api_routes.route('/main_form_uploads', methods = ['POST'])
 def test_upload():
     '''
     Try printing data using the SDK provided by formsg.  Use the test form first.
-
-    https://form.gov.sg/677f998060768f7e8d9d443f
-    54LGN8te8v62FKPCb5A1xdMkAtpOOihGfTwC0YGKRxc=
     '''
     try:
-        posted_data = json.loads(request.data)
+        posted_data, conn = json.loads(request.data), sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
         sdk.webhooks.authenticate(
-            request.headers["X-FormSG-Signature"], 'https://psc-r-project-store-a3d7.onrender.com/test_upload'
+            request.headers["X-FormSG-Signature"], 'https://psc-r-project-store-a3d7.onrender.com/main_form_uploads'
         )
-        print(sdk.crypto.decrypt('54LGN8te8v62FKPCb5A1xdMkAtpOOihGfTwC0YGKRxc=', posted_data['data']))
-        return(200)
+        decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
+        decrypted = dict([(map_question_to_id(i['question']), i['answer']) for i in decrypted['responses']])
+        print(decrypted)
+        
+        # Upload the data here:
+        cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
+        cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
+        to_upload = '(' + ', '.join([decrypted[i] for i in table_columns]) + ')'
+        cursor.execute(f"INSERT INTO {table_name} VALUES {to_upload}")
+        conn.commit() ; conn.close()
+        return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
     except WebhookAuthenticateException as e:
-        return Response("Unauthorized", 401)
+        return(jsonify({'message' : 'Bah!  Unauthorized request!'}, 401))
+    except Exception as e:
+        return(jsonify({'message' : 'Something bad happened...', 'error' : e}), 500)
 
 @api_routes.route('/update_patient', methods = ['POST'])
 def update_patient():
@@ -126,8 +89,7 @@ def update_patient():
                             'status' : 400}), 400)
         
         # Do the data updating here:
-        conn = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
-                                                                os.getenv('SQLITECLOUD_ADMIN_KEY')))
+        conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
         cursor, table_name = conn.cursor(), determine_table_name(data['patient']['arm']) ; data['patient'].pop('arm')
         database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
         database_update = ', '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", [(i[0], str(i[1]).replace("'", "''")) for i in data['to_update'].items()])))
@@ -159,49 +121,11 @@ def delete_patient():
                             'status' : 400}), 400)
         
         # Do the deletion here:
-        conn = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
-                                                                os.getenv('SQLITECLOUD_ADMIN_KEY')))
+        conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
         cursor, table_name = conn.cursor(), determine_table_name(data['patient']['arm']) ; data['patient'].pop('arm')
         database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
         delete_query = f'DELETE FROM {table_name} WHERE patient_name = "{data["patient"]["name"]}"'
         cursor.execute(delete_query) ; conn.commit() ; conn.close()
-    except Exception as e:
-        return(jsonify({'message' : 'something bad happened while deleting a record from the database...',
-                        'error' : str(e), 'code' : 500}), 500)
-
-@api_routes.route('/formsg_update', methods = ['POST'])
-def formsg_update():
-    '''
-    Tuesday, 7th January, 2025: Po Lin and I have decided to split the form up into multiple forms - so that there's not just one 
-                                massive chunk of responses to scroll through.  Because of this, I figured that we may need another 
-                                route to account for the other two forms - the ones dealing with caretaker information and functional
-                                and distress screening tools.
-
-                                This route will just update a row of data - in other words, it simply assumes that a person already exists
-                                in the database's tables:
-    '''
-    try:
-        data = request.get_json()
-        if data['authorization'] is None:
-            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
-        if data['authorization']['password'] != os.getenv('FIRST_PASSWORD'): 
-            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
-        if data['patient'] is None:
-            return(jsonify({'message' : 'Missing patient credentials to update information for', 'status' : 400}), 400)
-        if data['to_update'] is None:
-            return(jsonify({'message' : 'Missing information to update original patient information with', 
-                            'status' : 400}), 400)
-        
-        # Do some updating here:
-        conn = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
-                                                                os.getenv('SQLITECLOUD_ADMIN_KEY')))
-        cursor, table_name = conn.cursor(), determine_table_name(data['patient']['arm']) ; data['patient'].pop('arm')
-        database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
-        database_update = ', '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", [(i[0], str(i[1]).replace("'", "''")) for i in data['to_update'].items()])))
-        database_entry = ' AND '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", data['patient'].items())))
-        update_query = f"UPDATE {table_name} SET {database_update} WHERE {database_entry}" 
-        cursor.execute(update_query) ; conn.commit() ; conn.close()
-        return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
     except Exception as e:
         return(jsonify({'message' : 'something bad happened while deleting a record from the database...',
                         'error' : str(e), 'code' : 500}), 500)
