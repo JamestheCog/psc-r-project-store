@@ -11,7 +11,7 @@ def map_question_to_id(question):
     '''
     conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR')) 
     cursor = conn.cursor() ; cursor.execute(f'SELECT * FROM {os.getenv("MAPPING_TABLE")}')
-    mapping_dictionary = dict([cursor.fetchall()]) ; conn.close()
+    mapping_dictionary = dict(cursor.fetchall()) ; conn.close()
     return(mapping_dictionary.get(question, None))
 
 def determine_table_name(query_arm):
