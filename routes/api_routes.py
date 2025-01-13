@@ -55,7 +55,7 @@ def test_upload():
             request.headers["X-FormSG-Signature"], 'https://psc-r-project-store-a3d7.onrender.com/main_form_uploads'
         )
         decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
-        decrypted = dict([(map_question_to_id(i['question']), i['answer']) for i in decrypted['responses']])
+        decrypted = dict([(map_question_to_id(i['question']), i.get('answer', '?')) for i in decrypted['responses']])
         print(decrypted)
         
         # Upload the data here:
