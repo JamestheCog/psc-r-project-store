@@ -4,12 +4,6 @@ A module that contains functions for dealing with the remote SQLitecloud databas
 
 import sqlitecloud, os
 
-# Ignore these titles:
-EXCLUSIONS = ['Patient Pre-Surgery Information Review', 'Clilnical Frailty Scale (CFS)', 'Physiotherapy (PT) Readings',
-              'Malnutrition Universal Screening Tool (MUST)', 'Distress Thermometer', 'HADS: Hospital Depression and Anxiety Scale',
-              'EQ-5D-5L', 'FACT-G (version 4)', 'COST-FACIT (Version 2)', 'The Human Connection Scale (THC)',
-              'SCQOLS-15: Singapore Caregiver Quality of Life Scale 15-item Version 1.0', 'Instructions']
-
 def get_mapping_table():
     '''
     Given a question on one of the form.gov.sg forms, fetch the appropriate information from the
@@ -17,7 +11,7 @@ def get_mapping_table():
     '''
     conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR')) 
     cursor = conn.cursor() ; cursor.execute(f'SELECT * FROM {os.getenv("MAPPING_TABLE")}')
-    mapping_dictionary = dict([i for i in cursor.fetchall() if i[0] not in EXCLUSIONS]) ; conn.close()
+    mapping_dictionary = dict(cursor.fetchall()) ; conn.close()
     return(mapping_dictionary)
 
 def determine_table_name(query_arm):

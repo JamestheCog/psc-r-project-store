@@ -56,7 +56,7 @@ def test_upload():
         )
         mapping_dictionary = get_mapping_table()
         decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
-        decrypted = dict([(mapping_dictionary[i['question']], i.get('answer', '?')) for i in decrypted['responses']])
+        decrypted = dict([(mapping_dictionary[i['question']], i.get('answer', '?')) for i in decrypted['responses'] if i['question'] in mapping_dictionary.keys()])
         print(decrypted)
         
         # Upload the data here:
