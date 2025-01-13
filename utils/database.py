@@ -4,7 +4,7 @@ A module that contains functions for dealing with the remote SQLitecloud databas
 
 import sqlitecloud, os
 
-def map_question_to_id(question):
+def get_mapping_table():
     '''
     Given a question on one of the form.gov.sg forms, fetch the appropriate information from the
     right table 
@@ -12,7 +12,7 @@ def map_question_to_id(question):
     conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR')) 
     cursor = conn.cursor() ; cursor.execute(f'SELECT * FROM {os.getenv("MAPPING_TABLE")}')
     mapping_dictionary = dict(cursor.fetchall()) ; conn.close()
-    return(mapping_dictionary.get(question, None))
+    return(mapping_dictionary)
 
 def determine_table_name(query_arm):
     '''
