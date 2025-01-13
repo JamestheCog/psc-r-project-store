@@ -63,7 +63,7 @@ def test_upload():
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
         to_upload = '(' + ', '.join([decrypted.get(i, '?') for i in table_columns]) + ')'
-        cursor.execute(f"INSERT INTO {table_name} VALUES {to_upload}")
+        cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES {to_upload}")
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
     except WebhookAuthenticateException as e:
