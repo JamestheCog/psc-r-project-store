@@ -62,7 +62,7 @@ def test_upload():
         # Upload the data here:
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
-        to_upload = '(' + ', '.join([decrypted[i] for i in table_columns]) + ')'
+        to_upload = '(' + ', '.join([decrypted.get(i, '?') for i in table_columns]) + ')'
         cursor.execute(f"INSERT INTO {table_name} VALUES {to_upload}")
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
