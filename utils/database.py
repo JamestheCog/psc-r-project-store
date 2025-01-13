@@ -20,7 +20,7 @@ def determine_table_name(query_arm):
     table name.
     '''
     converted_arm = query_arm.lower()
-    if converted_arm.startswith('SPRinT'):
+    if 'sprint' in converted_arm:
         return(os.getenv('ARM_3_NAME'))
     if 'palliative' in converted_arm:
         return(os.getenv('ARM_2_NAME'))
