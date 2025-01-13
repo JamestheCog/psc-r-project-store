@@ -9,8 +9,7 @@ def map_question_to_id(question):
     Given a question on one of the form.gov.sg forms, fetch the appropriate information from the
     right table 
     '''
-    conn = sqlitecloud.connect('%s/%s?apikey=%s' % (os.getenv('DATABASE_CONNECTOR'), os.getenv('DATABASE_NAME'), 
-                                                    os.getenv('SQLITECLOUD_ADMIN_KEY'))) 
+    conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR')) 
     cursor = conn.cursor() ; cursor.execute(f'SELECT * FROM {os.getenv("MAPPING_TABLE")}')
     mapping_dictionary = dict([cursor.fetchall()]) ; conn.close()
     return(mapping_dictionary.get(question, None))
