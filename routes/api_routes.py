@@ -58,7 +58,7 @@ def main_form_uploads():
         mapping_dictionary = get_mapping_table()
         decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
         print(decrypted)
-        decrypted = process_form_responses(decrypted, mapping_dictionary)
+        decrypted = process_form_responses(decrypted['responses'], mapping_dictionary)
         
         # Upload the data here:
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
