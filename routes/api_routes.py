@@ -10,6 +10,7 @@ from formsg.exceptions import WebhookAuthenticateException
 
 # Then, import our user helpers here:
 from utils.database import get_mapping_table, determine_table_name
+from utils.data import process_form_responses
 
 # Define our blueprint and routes here; also load in the production version of formsg's SDK too:
 api_routes = Blueprint('api_routes', __name__)
@@ -57,7 +58,7 @@ def main_form_uploads():
         mapping_dictionary = get_mapping_table()
         decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
         print(decrypted)
-        decrypted = dict([(mapping_dictionary[i['question']], i.get('answer', '?')) for i in decrypted['responses'] if i['question'] in mapping_dictionary.keys()])
+        decrypted = process_form_responses(decrypted, mapping_dictionary)
         
         # Upload the data here:
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
