@@ -57,12 +57,12 @@ def main_form_uploads():
         mapping_dictionary = get_mapping_table()
         decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
         decrypted = dict([(mapping_dictionary[i['question']], i.get('answer', '?')) for i in decrypted['responses'] if i['question'] in mapping_dictionary.keys()])
-        print(decrypted)
         
         # Upload the data here:
-        cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm']) ; print(table_name)
+        cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
         to_upload = '(' + ', '.join([decrypted.get(i, '?') for i in table_columns]) + ')'
+        print(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({to_upload})")
         cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({to_upload})")
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
