@@ -9,6 +9,6 @@ def process_form_responses(form_responses, mapping_dictionary):
     '''
     to_return = {}
     for i in form_responses:
-        column_id = mapping_dictionary.get('question', '<unknown>')
+        column_id = mapping_dictionary.get(i['question'], '<unknown>')
         to_return[column_id] = '; '.join(i.get('answerArray', '-')) if 'answerArray' in i else i.get('answer', '-')
     return(to_return)
