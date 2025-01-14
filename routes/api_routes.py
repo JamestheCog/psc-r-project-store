@@ -61,7 +61,7 @@ def main_form_uploads():
         # Upload the data here:
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
-        to_upload = ', '.join([decrypted.get(i, '?') for i in table_columns])
+        to_upload = ', '.join([j if len(j.strip()) else '-' for j in [decrypted.get(i, '?') for i in table_columns]])
         print(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({to_upload})")
         cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({to_upload})")
         conn.commit() ; conn.close()
