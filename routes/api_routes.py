@@ -61,14 +61,14 @@ def main_form_uploads():
         # Upload the data here:
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
-        to_upload = ', '.join([j if len(j.strip()) else '-' for j in [decrypted.get(i, '?') for i in table_columns]])
-        print(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({to_upload})")
-        cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({to_upload})")
+        to_upload = [j if len(j.strip()) else '-' for j in [decrypted.get(i, '?') for i in table_columns]]
+        cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({', '.join(['?'] * len(to_upload))})", to_upload)
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
     except WebhookAuthenticateException as e:
         return(jsonify({'message' : 'Bah!  Unauthorized request!'}, 401))
     except Exception as e:
+        print(e)
         return(jsonify({'message' : 'Something bad happened...', 'error' : str(e)}), 500)
 
 @api_routes.route('/update_patient', methods = ['POST'])
