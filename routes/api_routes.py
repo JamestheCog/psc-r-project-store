@@ -16,36 +16,6 @@ from utils.data import process_form_responses
 api_routes = Blueprint('api_routes', __name__)
 sdk = formsg.FormSdk('PRODUCTION')
 
-# -- ROUTES FOR FETCHING AND UPLOADING DATA --
-@api_routes.route('/fetch_data', methods = ['POST'])
-def fetch_data():
-    '''
-    Given a POST request to this route, fetch data from the sqlitecloud database.
-    '''
-    try:
-        data = request.get_json()
-        if data['authorization'] is None:
-            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
-        if data['authorization']['password'] != os.getenv('PASSWORD'): 
-            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
-        if data['query'] is None:
-            return(jsonify({'message' : 'missing query information', 'status' : 405}), 405)
-        if data['query']['arm'] not in range(1, 4):
-            return(jsonify({'message' : '"arm" out of range', 'status' : 400}), 400)
-        
-        connection = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
-        cursor, table_name = connection.cursor(), determine_table_name(data.get('query').get('arm'))
-        database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
-        fetch_query = f'SELECT * FROM {table_name}' 
-        fetch_query = fetch_query if data.get('query').get('arm') < 3 else f"{fetch_query} WHERE nccs_department = \"{data.get('query').get('department')}\""
-        cursor.execute(fetch_query) ; to_return = cursor.fetchall() ; cursor.close() ; cursor = connection.cursor()
-        pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()] 
-        connection.close() ; print([dict(zip(column_names, i)) for i in to_return])
-        return(jsonify({'message' : 'Data fetching successful!', 'data' : [dict(zip(column_names, i)) for i in to_return]}), 200)
-    except Exception as e:
-        return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
-
-# -- Form.gov.sg uploads --
 @api_routes.route('/main_form_uploads', methods = ['POST'])
 def main_form_uploads():
     '''
@@ -85,13 +55,11 @@ def caregiver_response_upload():
         mapping_dictionary = get_mapping_table()
         decrypted = sdk.crypto.decrypt(os.getenv('CAREGIVER_FORM_KEY'), posted_data['data'])
         decrypted = process_form_responses(decrypted['responses'], mapping_dictionary)
-        print(decrypted)
         
         # Upload the data here:
         cursor = conn.cursor()
         cursor.execute(f"PRAGMA table_info({os.getenv('CAREGIVER_TABLE')})") ; table_columns = [i[1] for i in cursor.fetchall()]
         to_upload = [j if len(j.strip()) else '-' for j in [decrypted.get(i, '?') for i in table_columns]]
-        print(to_upload)
         cursor.execute(f"INSERT INTO {os.getenv('CAREGIVER_TABLE')} ({', '.join(table_columns)}) VALUES ({', '.join(['?'] * len(to_upload))})", to_upload)
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The caregiver\'s data has been successfully uploaded!'}), 200)
@@ -99,66 +67,3 @@ def caregiver_response_upload():
         return(jsonify({'message' : 'Bah!  Unauthorized request!'}, 401))
     except Exception as e:
         return(jsonify({'message' : 'Something bad happened...', 'error' : str(e)}), 500)
-
-@api_routes.route('/update_patient', methods = ['POST'])
-def update_patient():
-    '''
-    Given a list of patient particulars and their survey results, use them to update our patients'
-    information and / or other pieces of information where necessary.
-    '''
-    try:
-        data = request.get_json()
-        if data['authorization'] is None:
-            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
-        if data['authorization']['password'] != os.getenv('PASSWORD'): 
-            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
-        if data['patient'] is None:
-            return(jsonify({'message' : 'Missing patient credentials to update information for', 'status' : 400}), 400)
-        if data['to_update'] is None:
-            return(jsonify({'message' : 'Missing information to update original patient information with', 
-                            'status' : 400}), 400)
-        
-        # Do the data updating here:
-        conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
-        print(data['patient'])
-        cursor, table_name = conn.cursor(), determine_table_name(data['patient']['arm']) 
-        if table_name != os.getenv('ARM_3_NAME'): 
-            data['patient'].pop('arm')
-        else:
-            data['patient']['nccs_department'] = data['patient'].pop('arm')
-        database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
-        database_update = ', '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", [(i[0], str(i[1]).replace("'", "''")) for i in data['to_update'].items()])))
-        database_entry = ' AND '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", data['patient'].items()[:2])))
-        update_query = f"UPDATE {table_name} SET {database_update} WHERE {database_entry}" 
-        cursor.execute(update_query) ; conn.commit() ; conn.close()
-        return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
-    except (Exception, sqlitecloud.Error) as e:
-        return(jsonify({'message' : 'something bad happened while updating the database...',
-                        'error' : str(e), 'code' : 500}), 500)
-
-## == NEW ROUTES (Tuesday, 7th January, 2024) ==
-
-@api_routes.route('/delete_patient', methods = ['POST'])
-def delete_patient():
-    '''
-    Given a patient's name, delete their information from the SQLitecloud database:
-    '''
-    try:
-        data = request.get_json()
-        if data['authorization'] is None:
-            return(jsonify({'message' : 'Missing authorization information', 'status' : 400}), 400)
-        if data['authorization']['password'] != os.getenv('PASSWORD'): 
-            return(jsonify({'message' : 'Incorrect password given or missing password', 'status' : 405}), 405)
-        if data['patient'] is None:
-            return(jsonify({'message' : 'Missing patient credentials to update information for', 'status' : 400}), 400)
-        
-        # Do the deletion here:
-        conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR')) ; cursor = conn.cursor()
-        patient_info = {k : v.strip() for k, v in data['patient'].items()}
-        delete_query = f"DELETE FROM {patient_info.get('patient_arm', '<unknown>')} WHERE (patient_name = \"{patient_info.get('patient_name', '<unknown>')}\" OR patient_id = \"{patient_info.get('patient_id', '<unknown>')}\")"
-        delete_query = delete_query if patient_info.get('patient_arm', '<unknown>') == os.getenv("ARM_3_PATIENTS") else delete_query + f" AND nccs_department = \"{patient_info.get('patient_department', '<unknown>')}\""
-        cursor.execute(delete_query) ; conn.commit() ; conn.close()
-        return(jsonify({'message' : f'patient "{patient_info["patient_name"]}" successfully deleted!', 'code' : 200}), 200)
-    except Exception as e:
-        return(jsonify({'message' : 'something bad happened while deleting a record from the database...',
-                        'error' : str(e), 'code' : 500}), 500)

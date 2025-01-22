@@ -2,6 +2,8 @@
 A module to contain helper functions to deal with raw data.
 '''
 
+import os
+
 def process_form_responses(form_responses, mapping_dictionary):
     '''
     Given a decrypted list of formsg responses and a dictionary of question-to-db column mappings,
