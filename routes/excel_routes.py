@@ -89,7 +89,7 @@ def update_patient():
         else:
             data['patient']['nccs_department'] = data['patient'].pop('arm')
         database_update = ', '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", [(i[0], str(i[1]).replace("'", "''")) for i in data['to_update'].items()])))
-        database_entry = ' AND '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", data['patient'].items()[:2])))
+        database_entry = ' AND '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", list(data['patient'].items())[:2])))
         update_query = f"UPDATE {table_name} SET {database_update} WHERE {database_entry}" 
         cursor.execute(update_query) ; conn.commit() ; conn.close()
         return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
