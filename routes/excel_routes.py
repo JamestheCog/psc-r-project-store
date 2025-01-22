@@ -54,11 +54,9 @@ def fetch_caregiver_data():
             return(jsonify({'message' : 'missing query information', 'status' : 405}), 405)
         cursor, query = conn.cursor(), '%s = "%s"' % list(data['query'].items())[0]
         cursor.execute(f"PRAGMA table_info({os.getenv('CAREGIVER_TABLE')})") ; columns = [i[1] for i in cursor.fetchall()]
-        print(columns)
         cursor.close() ; cursor = conn.cursor()
         cursor.execute(f"SELECT * FROM {os.getenv('CAREGIVER_TABLE')} WHERE {query}") ; to_return = cursor.fetchall()
         to_return = ['-'] * len(columns) if len(to_return) == 0 else to_return[0]
-        print(to_return)
         to_return = dict(zip(columns, to_return))
         return(jsonify({'message' : 'Data successfully fetched!', 'code' : 200, 'data' : to_return}), 200)
     except (sqlitecloud.Error, Exception) as e:
@@ -90,7 +88,6 @@ def update_patient():
             data['patient'].pop('arm')
         else:
             data['patient']['nccs_department'] = data['patient'].pop('arm')
-        database_query = f"USE DATABASE {os.getenv('DATABASE_NAME')}" ; cursor.execute(database_query)
         database_update = ', '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", [(i[0], str(i[1]).replace("'", "''")) for i in data['to_update'].items()])))
         database_entry = ' AND '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", data['patient'].items()[:2])))
         update_query = f"UPDATE {table_name} SET {database_update} WHERE {database_entry}" 
