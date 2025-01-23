@@ -38,8 +38,10 @@ def main_form_uploads():
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
     except WebhookAuthenticateException as e:
+        print(e)
         return(jsonify({'message' : 'Bah!  Unauthorized request!'}, 401))
     except Exception as e:
+        print(e)
         return(jsonify({'message' : 'Something bad happened...', 'error' : str(e)}), 500)
 
 @api_routes.route('/caregiver_response_upload', methods = ['POST'])
@@ -64,6 +66,8 @@ def caregiver_response_upload():
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The caregiver\'s data has been successfully uploaded!'}), 200)
     except WebhookAuthenticateException as e:
+        print(e)
         return(jsonify({'message' : 'Bah!  Unauthorized request!'}, 401))
     except Exception as e:
+        print(e)
         return(jsonify({'message' : 'Something bad happened...', 'error' : str(e)}), 500)

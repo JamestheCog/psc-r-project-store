@@ -113,7 +113,7 @@ def delete_patient():
         
         # Do the deletion here:
         conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR')) ; cursor = conn.cursor()
-        patient_info = {k : v.strip() for k, v in data['patient'].items()}
+        patient_info = {k : str(v).strip() for k, v in data['patient'].items()}
         delete_query = f"DELETE FROM {patient_info.get('patient_arm', '<unknown>')} WHERE (patient_name = \"{patient_info.get('patient_name', '<unknown>')}\" OR patient_id = \"{patient_info.get('patient_id', '<unknown>')}\")"
         delete_query = delete_query if patient_info.get('patient_arm', '<unknown>') == os.getenv("ARM_3_PATIENTS") else delete_query + f" AND nccs_department = \"{patient_info.get('patient_department', '<unknown>')}\""
         cursor.execute(delete_query) ; conn.commit() ; conn.close()
