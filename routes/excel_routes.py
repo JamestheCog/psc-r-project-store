@@ -33,7 +33,7 @@ def fetch_data():
         fetch_query = fetch_query if data.get('query').get('arm') < 3 else f"{fetch_query} WHERE nccs_department = \"{data.get('query').get('department')}\""
         cursor.execute(fetch_query) ; to_return = cursor.fetchall() ; cursor.close() ; cursor = connection.cursor()
         pragma_query = f'PRAGMA table_info({table_name})' ; cursor.execute(pragma_query) ; column_names = [i[1] for i in cursor.fetchall()] 
-        connection.close() ; print([dict(zip(column_names, i)) for i in to_return])
+        connection.close()
         return(jsonify({'message' : 'Data fetching successful!', 'data' : [dict(zip(column_names, i)) for i in to_return]}), 200)
     except Exception as e:
         return(jsonify({'error_message' : str(e), 'status' : 500}), 500)
@@ -80,10 +80,9 @@ def update_patient():
         if data['to_update'] is None:
             return(jsonify({'message' : 'Missing information to update original patient information with', 
                             'status' : 400}), 400)
-        
         # Do the data updating here:
         conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
-        cursor, table_name = conn.cursor(), determine_table_name(data['patient']['arm']) 
+        cursor, table_name = conn.cursor(), determine_table_name(data['patient']['arm'])
         if table_name != os.getenv('ARM_3_NAME'): 
             data['patient'].pop('arm')
         else:

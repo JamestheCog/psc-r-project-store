@@ -19,7 +19,7 @@ def determine_table_name(query_arm):
     Given an arm in the form of a number, return the appropriate 
     table name.
     '''
-    if query_arm == 3 or 'sprint, head and neck' in str(query_arm).lower() or str(query).lower() in ['sprint', 'head and neck', 'obg']:
+    if query_arm == 3 or 'sprint, head and neck' in str(query_arm).lower() or str(query_arm).lower() in ['sprint', 'head and neck', 'obg']:
         return(os.getenv('ARM_3_NAME'))
     elif query_arm == 2 or 'usual and palliative care' in str(query_arm).lower():
         return(os.getenv('ARM_2_NAME'))
