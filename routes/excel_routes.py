@@ -92,7 +92,7 @@ def update_patient():
             database_entry = ' AND '.join(list(map(lambda x : f"{x[0]} = '{x[1]}'", list(data['patient'].items())[:2])))
             update_query = f"UPDATE {table_name} SET {database_update} WHERE {database_entry}" ; print(update_query)
             cursor.execute(update_query) ; conn.commit() ; conn.close()
-            return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
+        return(jsonify({'status' : 200, 'message' : 'data updated successfully!'}), 200)
     except (Exception, sqlitecloud.Error) as e:
         return(jsonify({'message' : 'something bad happened while updating the database...',
                         'error' : str(e), 'code' : 500}), 500)
