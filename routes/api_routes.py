@@ -31,9 +31,10 @@ def main_form_uploads():
         decrypted = process_form_responses(decrypted['responses'], mapping_dictionary)
         
         # Upload the data here:
-        cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm'])
+        cursor, table_name = conn.cursor(), determine_table_name(decrypted['arm']) ; print(decrypted['arm'])
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
         to_upload = [j if len(j.strip()) else '-' for j in [decrypted.get(i, '?') for i in table_columns]]
+        print(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({', '.join(['?'] * len(to_upload))})")
         cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({', '.join(['?'] * len(to_upload))})", to_upload)
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
