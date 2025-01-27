@@ -57,7 +57,7 @@ def fetch_caregiver_data():
         cursor.close() ; cursor = conn.cursor()
         cursor.execute(f"SELECT * FROM {os.getenv('CAREGIVER_TABLE')} WHERE {query}") ; to_return = cursor.fetchall()
         to_return = ['-'] * len(columns) if len(to_return) == 0 else to_return[0]
-        to_return = dict(zip(columns, to_return))
+        to_return = dict(zip(columns, to_return)) ; conn.close()
         return(jsonify({'message' : 'Data successfully fetched!', 'code' : 200, 'data' : to_return}), 200)
     except (sqlitecloud.Error, Exception) as e:
         return(jsonify({'Something bad happened...' : str(e), 'status' : 500}), 500)
