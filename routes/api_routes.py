@@ -27,7 +27,7 @@ def main_form_uploads():
             request.headers["X-FormSG-Signature"], 'https://psc-r-project-store-a3d7.onrender.com/main_form_uploads'
         )
         mapping_dictionary = get_mapping_table()
-        decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
+        decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data']) ; print(decrypted)
         decrypted = process_form_responses(decrypted['responses'], mapping_dictionary)
         
         # Upload the data here:
