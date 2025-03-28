@@ -35,5 +35,5 @@ def process_respondent_data(processed_forms,
     health_goals = {i : process_health_goals(processed_forms.get(i)) for i in health_goal_columns}
     eq5d5l_data = dict(zip(eq5d5l_columns, list(map(process_eq5d5l, eq5d5l_columns))))
     to_return = {**rest_of_data, **health_goals, **eq5d5l_data}
-    to_return.update({'submission_date' : datetime.today().strftime('%Y-%m-%d')})
+    to_return.update({'submission_date' : datetime.datetime.today().strftime('%Y-%m-%d')})
     return(to_return)
