@@ -4,7 +4,7 @@ A module to contain helper functions to deal with raw data.
 
 import os, json, datetime
 from cryptography.fernet import Fernet
-from responses import process_health_goals, process_eq5d5l
+from utils.responses import process_health_goals, process_eq5d5l
 
 def process_form_inputs(form_responses, fernet_key = os.getenv('FERNET_KEY')):
     '''
