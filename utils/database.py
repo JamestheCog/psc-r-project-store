@@ -11,6 +11,6 @@ def determine_table_name(query_arm, fernet_key = os.getenv('FERNET_KEY')):
     table name.
     '''
     query_arm, decryptor = query_arm.lower(), Fernet(rf'{fernet_key}')
-    with open('../resources/mappings/database_tables.txt', 'rb') as encrypted:
+    with open('./resources/mappings/database_tables.txt', 'rb') as encrypted:
         arm_name = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
     return(arm_name.get(query_arm, '???'))

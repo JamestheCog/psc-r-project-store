@@ -12,7 +12,7 @@ def process_form_inputs(form_responses, fernet_key = os.getenv('FERNET_KEY')):
     create a dictionary where the column ID is the key and the form response(s) itself the value.
     '''
     to_return, decryptor = {}, Fernet(fernet_key)
-    with open('../resources/mappings/question_mappings.txt', 'rb') as file:
+    with open('./resources/mappings/question_mappings.txt', 'rb') as file:
         mapping = json.loads(decryptor.decrypt(file.read()).decode('utf-8'))
     for i in form_responses:
         column_id = mapping.get(i['question'].lower(), '<unknown>')
