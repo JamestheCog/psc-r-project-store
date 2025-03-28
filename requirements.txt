@@ -8,3 +8,4 @@ sqlitecloud==0.0.83
 Frozen-Flask==1.0.2
 formsg-python-sdk==0.1.13
 typing_extensions==4.11.0
+cryptography==43.0.1
