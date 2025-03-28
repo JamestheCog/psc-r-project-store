@@ -2,27 +2,15 @@
 A module that contains functions for dealing with the remote SQLitecloud database.
 '''
 
-import sqlitecloud, os
+import os, json
+from cryptography import Fernet
 
-def get_mapping_table():
-    '''
-    Given a question on one of the form.gov.sg forms, fetch the appropriate information from the
-    right table 
-    '''
-    conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR')) 
-    cursor = conn.cursor() ; cursor.execute(f'SELECT * FROM {os.getenv("MAPPING_TABLE")}')
-    mapping_dictionary = dict(cursor.fetchall()) ; conn.close()
-    return(mapping_dictionary)
-
-def determine_table_name(query_arm):
+def determine_table_name(query_arm, fernet_key = os.getenv('FERNET_KEY')):
     '''
     Given an arm in the form of a number, return the appropriate 
     table name.
     '''
-    if query_arm == 3 or 'sprint, head and neck' in str(query_arm).lower() or str(query_arm).lower() in ['sprint', 'head and neck', 'obg']:
-        return(os.getenv('ARM_3_NAME'))
-    elif query_arm == 2 or 'usual and palliative care' in str(query_arm).lower():
-        return(os.getenv('ARM_2_NAME'))
-    elif query_arm == 1 or 'usual care' in str(query_arm).lower():
-        return(os.getenv('ARM_1_NAME'))
-    return('<unknown>')
+    query_arm, decryptor = query_arm.lower(), Fernet(fernet_key)
+    with open('../resources/mappings/database_tables.txt', 'rb') as encrypted:
+        arm_name = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
+    return(arm_name.get(query_arm, '???'))
