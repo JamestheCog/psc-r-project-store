@@ -3,7 +3,7 @@ A module that contains functions for dealing with the remote SQLitecloud databas
 '''
 
 import os, json
-from cryptography import Fernet
+from cryptography.fernet import Fernet
 
 def determine_table_name(query_arm, fernet_key = os.getenv('FERNET_KEY')):
     '''
