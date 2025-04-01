@@ -4,7 +4,6 @@ on Plumber.
 '''
 
 from flask import Blueprint, request, jsonify
-from datetime import datetime
 import os, json, sqlitecloud
 import formsg
 from formsg.exceptions import WebhookAuthenticateException
@@ -27,16 +26,14 @@ def main_form_uploads():
         sdk.webhooks.authenticate(
             request.headers["X-FormSG-Signature"], 'https://psc-r-project-store-a3d7.onrender.com/main_form_uploads'
         )
-        decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data']) ; print(decrypted)
+        decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
         decrypted = process_form_inputs(decrypted['responses'])
         decrypted = process_respondent_data(decrypted)
-        print(decrypted)
         
         # Upload the data here:
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['patient_arm'])
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
         to_upload = [j if len(j.strip()) else '-' for j in [decrypted.get(i, '') for i in table_columns]]
-        print(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({', '.join(['?'] * len(to_upload))})")
         cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({', '.join(['?'] * len(to_upload))})", to_upload)
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
