@@ -34,18 +34,14 @@ def process_cfs(cfs_responses, fernet_key = os.getenv('FERNET_KEY')):
     Process a patient's responses to the clinical frailty scale:
     '''
     input, decryptor = {k : v.lower().strip() for k, v in cfs_responses.items()}, Fernet(rf'{fernet_key}')
-    print(input)
     with open('./resources/mappings/cfs_mappings.txt', 'rb') as encrypted:
         cfs_mappings = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
     input = {k : cfs_mappings[k].get(v.split('-->')[0].strip(), '-') for k, v in input.items()}
-    print(input)
     return(input)
 
 def process_must(must_responses):
     '''
     Process some of the patient's responses to the MUST survey:
     '''
-    print(must_responses)
     input = {k : v.lower().split('-->')[-1].strip()[-1] for k, v in must_responses.items()}
-    print(input)
     return(input)

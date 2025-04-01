@@ -33,7 +33,7 @@ def main_form_uploads():
         # Upload the data here:
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['patient_arm'])
         cursor.execute(f"PRAGMA table_info({table_name})") ; table_columns = [i[1] for i in cursor.fetchall()]
-        to_upload = [j if len(j.strip()) else '-' for j in [decrypted.get(i, '') for i in table_columns]]
+        to_upload = [j if len(str(j).strip()) else '-' for j in [decrypted.get(i, '') for i in table_columns]]
         cursor.execute(f"INSERT INTO {table_name} ({', '.join(table_columns)}) VALUES ({', '.join(['?'] * len(to_upload))})", to_upload)
         conn.commit() ; conn.close()
         return(jsonify({'message' : 'The patient\'s data has been successfully uploaded!'}), 200)
