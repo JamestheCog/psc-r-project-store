@@ -36,7 +36,7 @@ def process_cfs(cfs_responses, fernet_key = os.getenv('FERNET_KEY')):
     input, decryptor = {k : v.lower().strip() for k, v in cfs_responses.items()}, Fernet(rf'{fernet_key}')
     with open('./resources/mappings/cfs_mappings.txt', 'rb') as encrypted:
         cfs_mappings = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
-    input = {k : cfs_mappings[k].get(v, '-') for k, v in input.items()}
+    input = {k : cfs_mappings[k].get(v.split('-->')[0].strip(), '-') for k, v in input.items()}
     return(input)
 
 def process_must(must_responses):
