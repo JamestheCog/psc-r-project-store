@@ -23,8 +23,7 @@ def process_respondent_data(processed_forms,
                             health_goal_columns = ['health_goals'],
                             eq5d5l_columns = ['eq_anxiety', 'eq_mobility', 'eq_pain', 'eq_self_care', 'eq_usual'],
                             cfs_columns = ['cfs_terminally_ill', 'cfs_badls', 'cfs_iadls', 'cfs_chronic_conditions',
-                                           'cfs_everything_effort', 'cfs_health_rating', 'cfs_moderate_activities',
-                                           'cfs_final_score'],
+                                           'cfs_everything_effort', 'cfs_health_rating', 'cfs_moderate_activities'],
                             must_columns = ['must_bmi_score', 'must_weight_loss_percent_score', 'must_questions']):
     '''
     Once the formsg responses have been processed by process_form_inputs, deal with the 
