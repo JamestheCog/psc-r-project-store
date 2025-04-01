@@ -38,8 +38,8 @@ def process_respondent_data(processed_forms,
             rest_of_data[question] = response.split('-')[0].strip()       
     health_goals = {i : process_health_goals(processed_forms.get(i)) for i in health_goal_columns}
     eq5d5l_data = dict(zip(eq5d5l_columns, list(map(process_eq5d5l, eq5d5l_columns))))
-    cfs_data = process_cfs({i : processed_forms.get(i) for i in cfs_columns}) 
-    must_data = process_must({i : processed_forms.get(i) for i in must_columns})
+    cfs_data = process_cfs({i : processed_forms.get(i, '-') for i in cfs_columns}) 
+    must_data = process_must({i : processed_forms.get(i, '-') for i in must_columns})
     to_return = {**rest_of_data, **health_goals, **eq5d5l_data, **cfs_data, **must_data}
     to_return.update({'submission_date' : datetime.datetime.today().strftime('%Y-%m-%d')})
     return(to_return)
