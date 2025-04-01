@@ -44,5 +44,5 @@ def process_must(must_responses):
     Process some of the patient's responses to the MUST survey:
     '''
     input = {k : (v if len(v.strip()) else '-') for k, v in must_responses.items()}
-    input = {k : v.lower().split('-->')[-1].strip()[-1] for k, v in must_responses.items()}
+    input = {k : v.lower().split('-->')[-1].strip()[-1] for k, v in input.items()}
     return(input)
