@@ -45,5 +45,4 @@ def process_must(must_responses):
     '''
     input = {k : (v if len(v.strip()) else '-') for k, v in must_responses.items()}
     input = {k : v.lower().split('-->')[-1].strip()[-1] for k, v in must_responses.items()}
-    input = {k : (v[-1] if len(v) else v) for k, v in must_responses.items()}
     return(input)
