@@ -66,6 +66,8 @@ def update_patients():
         for patient in data['patients']:
             data_of_interest = data['patients'][patient]
             for month_data in data_of_interest:
+                if not len(data_of_interest[month_data]): 
+                    continue
                 set_statement = ', '.join([f'{i} = ?' for i in data_of_interest[month_data].keys()])
                 where_statement = ' AND '.join([f'{i} = ?' for i in constructor_helpers['where_parameters'].values()])
                 update_statement = f"UPDATE {data['study_settings']['arm']} SET {set_statement} WHERE {where_statement}"
@@ -94,8 +96,8 @@ def delete_patient():
         
         # Do the deletion here:
         conn = sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR')) ; cursor = conn.cursor()
-        delete_statement = f"DELETE FROM {data['study_settings'].get('arm')} WHERE " + ' AND '.join([f'{i} = ?' for i in data['delete_parameters'].keys()])
-        cursor.execute(delete_statement, tuple(i for i in data['delete_parameters'].values()))
+        delete_statement = f"DELETE FROM {data['study_settings'].get('arm')} WHERE " + ' AND '.join([f'{k} = "{v}"' for k, v in data['delete_parameters'].items()])
+        cursor.execute(delete_statement)
         return(jsonify({'message' : 'A successful deletion!', 'code' : 200}), 200)
     except Exception as e:
         print(e)
