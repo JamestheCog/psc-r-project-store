@@ -26,9 +26,9 @@ def main_form_uploads():
         sdk.webhooks.authenticate(
             request.headers["X-FormSG-Signature"], 'https://psc-r-project-store-a3d7.onrender.com/main_form_uploads'
         )
-        decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
-        decrypted = process_form_inputs(decrypted['responses'])
-        decrypted = process_respondent_data(decrypted)
+        decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data']) ; print(decrypted)
+        decrypted = process_form_inputs(decrypted['responses']) ; print(decrypted)
+        decrypted = process_respondent_data(decrypted) ; print(decrypted)
         
         # Upload the data here:
         cursor, table_name = conn.cursor(), determine_table_name(decrypted['patient_arm'])
