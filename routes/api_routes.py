@@ -24,7 +24,7 @@ def main_form_uploads():
     try:
         posted_data, conn = json.loads(request.data), sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
         sdk.webhooks.authenticate(
-            request.headers["X-FormSG-Signature"], 'https://psc-r-project-store-a3d7.onrender.com/main_form_uploads'
+            request.headers["X-FormSG-Signature"], os.getenv('FORMSG_WEBHOOK_URL')
         )
         decrypted = sdk.crypto.decrypt(os.getenv('INTERVIEW_FORMS_KEY'), posted_data['data'])
         decrypted = process_form_inputs(decrypted['responses'])
