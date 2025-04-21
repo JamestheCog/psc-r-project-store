@@ -2,9 +2,14 @@
 A module to contain helper functions to deal with raw data.
 '''
 
-import os, json, datetime
+import os, json, datetime, sqlitecloud
 from cryptography.fernet import Fernet
 from utils.responses import process_health_goals, process_eq5d5l, process_cfs, process_must
+from dotenv import load_dotenv
+from functools import reduce
+
+# Load in environment variables:
+load_dotenv()
 
 def process_form_inputs(form_responses, fernet_key = os.getenv('FERNET_KEY')):
     '''
@@ -42,3 +47,108 @@ def process_respondent_data(processed_forms,
     to_return = {**rest_of_data, **health_goals, **eq5d5l_data, **cfs_data, **must_data}
     to_return.update({'submission_date' : datetime.datetime.today().strftime('%Y-%m-%d')})
     return(to_return)
+
+def return_dt_info(raw_info, fernet_key = os.getenv('FERNET_KEY')):
+    '''
+    Returns the de-encoded variation of a patient's distress thermometer information.
+    '''
+    decryptor, connection = Fernet(rf'{fernet_key}'), sqlitecloud.connect(os.getenv('DATABASE_CONNECTOR'))
+    with open('./resources/mappings/dt_and_table_info.txt', 'rb') as file:
+        mappings = json.loads(decryptor.decrypt(file.read()).decode('utf-8'))
+    with open('./resources/mappings/database_tables.txt', 'rb') as file:
+        tables = json.loads(decryptor.decrypt(file.read()).decode('utf-8'))
+    cursor = connection.cursor()
+
+    # Do the processing here:
+    fetch_statement = f"SELECT {', '.join(mappings['dt']['dt_headers'])} FROM {tables['sprint, head and neck, obg (arm 3)']} WHERE"
+    query, values = [], []
+    for param, value in raw_info.items():
+        if isinstance(value, list):
+            query.append(f" {param} IN ({', '.join(['?'] * len(value))})")
+            values.extend(value)
+        elif isinstance(value, str):
+            query.append(f" {param} = ?")
+            values.append(value)
+    fetch_statement = f"{fetch_statement} {' AND '.join(query)}"
+    
+    # Execute and fetch SQL and values here: (before returning, that is):
+    cursor.execute(fetch_statement, tuple(values)) ; fetched_data = cursor.fetchall()
+    fetched_data = list(map(lambda x : dict(zip(mappings['dt']['dt_headers'], x)), fetched_data))
+    for result in fetched_data:
+        for field in result:
+            if field in mappings['dt']['dt_to_ignore'] or result[field] == '-':
+                continue
+            result[field] = ', '.join([f"{i} - {mappings['dt']['mappings'][i.strip()]}" for i in result[field].split(',')])
+    return(fetched_data)
+    
+
+
+# === Functions for checking daily responses (both private and public) ===
+
+def _get_response_for_table(sql_command, values, arm_param, connector = os.getenv('DATABASE_CONNECTOR')):
+    '''
+    A private function meant to be used within check_daily_responses() - so that the latter function
+    doesn't become bloated.  This function fetches all data for a date given a submission date and 
+    returns dictionaries.
+    '''
+    connector = sqlitecloud.connect(connector) ; cursor = connector.cursor()
+    cursor.execute(f"PRAGMA table_info({values[arm_param]})") ; values.pop(arm_param)
+    column_names = [i[1] for i in cursor.fetchall()] ; cursor.close()
+    cursor = connector.cursor() ; cursor.execute(sql_command, tuple(*values.values()))
+    to_return = list(map(lambda x : dict(zip(column_names, x)), cursor.fetchall()))
+    return(to_return)
+
+def _check_missing_responses(arm_name, raw_data, fernet_key):
+    '''
+    A private function meant to be used within check_daily_responses() - so that the latter function
+    doesn't become bloated.  This function - given a list of columns to check for - returns a list of 
+    columns 
+    '''
+    decryptor, checked_responses = Fernet(rf'{fernet_key}'), []
+    with open('./resources/mappings/dt_and_table_info.txt', 'rb') as file:
+        mappings = json.loads(decryptor.decrypt(file.read()).decode('utf-8'))
+    for patient in raw_data:
+        if arm_name.endswith("1"):
+            arm_to_match = 'arm_1_checks'
+        elif arm_name.endswith("2"):
+            arm_to_match = 'arm_2_checks'
+        elif arm_name.endswith("3"):
+            arm_to_match = 'arm_3_checks'
+        missing_cols = list(map(lambda x : mappings['headers_to_check']['header_names'][x], mappings['headers_to_check']['cols_to_check'][arm_to_match]))
+        missing_cols = reduce(lambda x, y : x + y, missing_cols)
+        missing_cols = list(filter(lambda x : patient[x] in [None, '', '-', 'NA'], missing_cols))
+        if len(missing_cols):
+            checked_responses.append({patient[mappings['headers_to_check']['name_param']] : [f'- {i}' for i in missing_cols]})
+    return(checked_responses)
+
+
+def check_daily_responses(raw_results, fernet_key = os.getenv('FERNET_KEY')):
+    '''
+    Checks for missing variables within a date's responses.
+    '''
+    decryptor, info_of_interest = Fernet(rf'{fernet_key}'), []
+    with open('./resources/mappings/dt_and_table_info.txt', 'rb') as file:
+        mappings = json.loads(decryptor.decrypt(file.read()).decode('utf-8'))
+    for table_name in mappings['headers_to_check']['arm_names']:
+        select_statement = F'SELECT * FROM {table_name} WHERE'
+        params, values = [], {mappings['headers_to_check']['table_param'] : table_name}
+        for param in raw_results:
+            if len(raw_results[param]) > 1:
+                params.append(f"{param} IN ({', '.join(['?'] * len(raw_results[param]))})")
+                values[param] = raw_results[param]
+            else:
+                params.append(f'{param} = ?')
+                values[param] = raw_results[param]
+        select_statement = f"{select_statement} {' AND '.join(params)}"
+        info_of_interest.extend(_get_response_for_table(select_statement, values, mappings['headers_to_check']['table_param']))
+    to_return = {
+        'arm_1' : [i for i in info_of_interest if '1' in i['patient_arm']],
+        'arm_2' : [i for i in info_of_interest if '2' in i['patient_arm']],
+        'arm_3' : [i for i in info_of_interest if '3' in i['patient_arm']]
+    }
+    print(info_of_interest)
+    if sum(list(map(lambda x : len(to_return[x]), list(to_return.keys())))) > 0:
+        to_return = {arm : _check_missing_responses(arm, data, fernet_key) for arm, data in to_return.items()}
+    print(to_return)
+    return(to_return)
+    

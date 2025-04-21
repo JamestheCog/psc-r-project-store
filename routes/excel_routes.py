@@ -5,6 +5,7 @@ Routes for the Excel workbook to access the Proxy application.
 from flask import Blueprint, request, jsonify
 from cryptography.fernet import Fernet
 import os, sqlitecloud, json
+from utils.data import return_dt_info, check_daily_responses
 
 # Define the blueprint here:
 excel_routes = Blueprint('excel_routes', __name__)
@@ -103,3 +104,27 @@ def delete_patient():
         print(e)
         return(jsonify({'message' : 'something bad happened while deleting a record from the database...',
                         'error' : str(e), 'code' : 500}), 500)
+
+@excel_routes.route('/fetch_with_sql', methods = ['post'])
+def fetch_dt_information():
+    '''
+    Given a SQL statement to be executed, execute it, return the result, and process it accordingly:
+    '''
+    data = request.get_json()
+    if data.get('authorization') is None:
+        return(jsonify({'message' : 'Missing authorization information.', 'status' : 400}), 400)
+    if data['authorization'].get('password') != os.getenv('PASSWORD'):
+        return(jsonify({'message' : 'Incorrect or missing password.', 'status' : 400}), 400)
+    if data.get('request') is None:
+        return(jsonify({'message' : 'Missing query information.', 'status' : 400}), 400)
+    if data['request'].get('sql_command_or_params') is None:
+        return(jsonify({'message' : 'Missing SQL statement to be executed.', 'status' : 400}), 400)
+    if data['request'].get('action') is None:
+        return(jsonify({'message' : 'Missing action to do with fetched data.', 'status' : 400}), 400)
+    
+    if data['request']['action'] == 'get_dt_information':
+        results = return_dt_info(data['request']['sql_command_or_params'])
+    elif data['request']['action'] == 'get_daily_responses':
+        results = check_daily_responses(data['request']['sql_command_or_params'])
+    return(jsonify({'data' : results, 'message' : 'SQL command and action executed successfully!'}), 200)
+    
