@@ -76,9 +76,14 @@ def return_dt_info(raw_info, fernet_key = os.getenv('FERNET_KEY')):
     fetched_data = list(map(lambda x : dict(zip(mappings['dt']['dt_headers'], x)), fetched_data))
     for result in fetched_data:
         for field in result:
-            if field in mappings['dt']['dt_to_ignore'] or result[field] == '-':
+            if field in mappings['dt']['dt_to_ignore'] or result[field] in ['-', None]:
+                if result[field] in ['-', None]:
+                    result[field] = '-'
                 continue
-            result[field] = ', '.join([f"{i} - {mappings['dt']['mappings'][i.strip()]}" for i in result[field].split(',')])
+            if result[field] in ['-', None]:
+                result[field] = '-'
+            else:
+                result[field] = ', '.join([f"{i} - {mappings['dt']['mappings'][i.strip()]}" for i in result[field].split(',')])
     return(fetched_data)
     
 
