@@ -121,7 +121,7 @@ def _check_missing_responses(arm_name, raw_data, fernet_key):
             arm_to_match = 'arm_3_checks'
         missing_cols = list(map(lambda x : mappings['headers_to_check']['header_names'][x], mappings['headers_to_check']['cols_to_check'][arm_to_match]))
         missing_cols = reduce(lambda x, y : x + y, missing_cols)
-        missing_cols = list(filter(lambda x : patient[x] in [None, '', '-', 'NA'], missing_cols))
+        missing_cols = list(filter(lambda x : patient[x] in [None, '', '-'], missing_cols))
         if len(missing_cols):
             checked_responses.append({patient[mappings['headers_to_check']['name_param']] : [f'- {i}' for i in missing_cols]})
     return(checked_responses)
