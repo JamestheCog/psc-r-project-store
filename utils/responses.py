@@ -46,3 +46,20 @@ def process_must(must_responses):
     input = {k : (v if len(v.strip()) else '-') for k, v in must_responses.items()}
     input = {k : v.lower().split('-->')[-1].strip()[-1] for k, v in input.items()}
     return(input)
+
+def process_health_goals(goal_data):
+    '''
+    Given a patient's responses to the health goals (i.e., from month 1), format them into a 
+    string to be returned:
+    '''
+    health_goal_strings = f'''
+    ~~ Met Goals ~~
+    {', '.join(goal_data['met_goals'])}
+
+    ~~ Unmet Goals ~~
+    {', '.join(goal_data['unmet_goals'])}
+
+    ~~ Unsure Goals ~~
+    {', '.join(goal_data['unsure_goals'])}
+    '''.strip()
+    return(health_goal_strings)
