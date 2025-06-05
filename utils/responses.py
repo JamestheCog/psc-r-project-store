@@ -62,4 +62,4 @@ def process_health_goals(goal_data):
     ~~ Unsure Goals ~~
     {', '.join(goal_data['unsure_goals'])}
     '''.strip()
-    return(health_goal_strings)
+    return({'health_goals_met' : health_goal_strings})
