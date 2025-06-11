@@ -4,7 +4,7 @@ A module to contain helper functions to deal with raw data.
 
 import os, json, datetime, sqlitecloud
 from cryptography.fernet import Fernet
-from utils.responses import process_health_goals, process_eq5d5l, process_cfs, process_must
+from utils.responses import process_health_goals, process_health_goals_after, process_eq5d5l, process_cfs, process_must
 from dotenv import load_dotenv
 from functools import reduce
 
@@ -30,7 +30,7 @@ def process_respondent_data(processed_forms,
                             cfs_columns = ['cfs_terminally_ill', 'cfs_badls', 'cfs_iadls', 'cfs_chronic_conditions',
                                            'cfs_everything_effort', 'cfs_health_rating', 'cfs_moderate_activities'],
                             must_columns = ['must_bmi_score', 'must_weight_loss_percent_score', 'must_questions'],
-                            goal_columns = ['met_goals', 'unmet_goals', 'unsure_goals']):
+                            goal_after_columns = ['met_goals', 'unmet_goals', 'unsure_goals']):
     '''
     Once the formsg responses have been processed by process_form_inputs, deal with the 
     responses themsselves.
@@ -45,9 +45,11 @@ def process_respondent_data(processed_forms,
     eq5d5l_data = dict(zip(eq5d5l_columns, list(map(process_eq5d5l, [processed_forms.get(i) for i in eq5d5l_columns]))))
     cfs_data = process_cfs({i : processed_forms.get(i, '-') for i in cfs_columns}) 
     must_data = process_must({i : processed_forms.get(i, '-') for i in must_columns})
+    print(health_goals)
     print('processing health goals now...')
-    goal_data = process_health_goals({i : processed_forms.get(i, '-') for i in goal_columns})
-    to_return = {**rest_of_data, **health_goals, **eq5d5l_data, **cfs_data, **must_data, **goal_data}
+    print({i : processed_forms.get(i, '-') for i in goal_after_columns})
+    goal_data_after = process_health_goals_after({i : processed_forms.get(i, '-') for i in goal_after_columns})
+    to_return = {**rest_of_data, **health_goals, **eq5d5l_data, **cfs_data, **must_data, **goal_data_after}
     to_return.update({'submission_date' : datetime.datetime.today().strftime('%Y-%m-%d')})
     return(to_return)
 

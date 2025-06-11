@@ -47,22 +47,25 @@ def process_must(must_responses):
     input = {k : v.lower().split('-->')[-1].strip()[-1] for k, v in input.items()}
     return(input)
 
-def process_health_goals(goal_data):
+def process_health_goals_after(goal_data, fernet_key = os.getenv('FERNET_KEY')):
     '''
     Given a patient's responses to the health goals (i.e., from month 1), format them into a 
     string to be returned:
     '''
-    print('making health goals strings now...')
-    print(goal_data)
-    print(type(goal_data))
+    raw = {i : list(map(lambda x : x.lower(), v)) for i, v in goal_data.items()}
+    decryptor = Fernet(rf'{fernet_key}')
+    with open('./resources/mappings/health_goals.txt', 'rb') as encrypted:
+        goal_mappings = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
+    print(raw)
+    print(type(raw))
     health_goal_strings = f'''
     ~~ Met Goals ~~
-    {', '.join(goal_data['met_goals'])}
+    {', '.join([goal_mappings[i] for i in raw['met_goals']])}
 
     ~~ Unmet Goals ~~
-    {', '.join(goal_data['unmet_goals'])}
+    {', '.join(goal_mappings[i] for i in raw['unmet_goals'])}
 
     ~~ Unsure Goals ~~
-    {', '.join(goal_data['unsure_goals'])}
+    {', '.join(goal_mappings[i] for i in raw['unsure_goals'])}
     '''.strip()
     return({'health_goals_met' : health_goal_strings})
