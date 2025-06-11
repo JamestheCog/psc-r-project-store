@@ -52,6 +52,8 @@ def process_health_goals(goal_data):
     Given a patient's responses to the health goals (i.e., from month 1), format them into a 
     string to be returned:
     '''
+    print('making health goals strings now...')
+    print(goal_data)
     health_goal_strings = f'''
     ~~ Met Goals ~~
     {', '.join(goal_data['met_goals'])}
