@@ -53,18 +53,12 @@ def process_health_goals_after(goal_data, fernet_key = os.getenv('FERNET_KEY')):
     string to be returned:
     '''
     raw = {i : list(map(lambda x : x.strip().lower(), v.split(';'))) for i, v in goal_data.items()}
-    print(raw)
     decryptor = Fernet(rf'{fernet_key}')
     with open('./resources/mappings/health_goals.txt', 'rb') as encrypted:
         goal_mappings = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
-    health_goal_strings = f'''
-    ~~ Met Goals ~~
-    {', '.join([goal_mappings[i] for i in raw['met_goals']])}
-
-    ~~ Unmet Goals ~~
-    {', '.join(goal_mappings[i] for i in raw['unmet_goals'])}
-
-    ~~ Unsure Goals ~~
-    {', '.join(goal_mappings[i] for i in raw['unsure_goals'])}
-    '''.strip()
+    health_goal_strings = "Met Goals: {}\nUnmet Goals: {}\nUnsure Goals: {}".format(
+        ', '.join([goal_mappings[i] for i in raw['met_goals']]),
+        ', '.join(goal_mappings[i] for i in raw['unmet_goals']),
+        ', '.join(goal_mappings[i] for i in raw['unsure_goals'])
+    ).strip()
     return({'health_goals_met' : health_goal_strings})
