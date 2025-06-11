@@ -52,8 +52,8 @@ def process_health_goals_after(goal_data, fernet_key = os.getenv('FERNET_KEY')):
     Given a patient's responses to the health goals (i.e., from month 1), format them into a 
     string to be returned:
     '''
-    raw = {i : list(map(lambda x : x.strip(), v.split(';'))) for i, v in goal_data.items()}
-    raw = {i : list(map(lambda x : x.lower(), v)) for i, v in goal_data.items()}
+    raw = {i : list(map(lambda x : x.strip().lower(), v.split(';'))) for i, v in goal_data.items()}
+    print(raw)
     decryptor = Fernet(rf'{fernet_key}')
     with open('./resources/mappings/health_goals.txt', 'rb') as encrypted:
         goal_mappings = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
