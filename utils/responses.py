@@ -54,6 +54,7 @@ def process_health_goals(goal_data):
     '''
     print('making health goals strings now...')
     print(goal_data)
+    print(type(goal_data))
     health_goal_strings = f'''
     ~~ Met Goals ~~
     {', '.join(goal_data['met_goals'])}
