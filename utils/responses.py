@@ -26,7 +26,7 @@ def process_health_goals(raw_goals, fernet_key = os.getenv('FERNET_KEY')):
     raw_goals, decryptor = list(map(lambda x : x.lower(), raw_goals)), Fernet(rf'{fernet_key}')
     with open('./resources/mappings/health_goals.txt', 'rb') as encrypted:
         health_goals = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
-    conversions = [health_goals.get(i, '') for i in raw_goals]
+    conversions = [health_goals.get(i, '-') for i in raw_goals]
     return(', '.join(list(filter(lambda x : len(x.strip()) > 0, conversions))))
 
 def process_cfs(cfs_responses, fernet_key = os.getenv('FERNET_KEY')):
@@ -57,8 +57,8 @@ def process_health_goals_after(goal_data, fernet_key = os.getenv('FERNET_KEY')):
     with open('./resources/mappings/health_goals.txt', 'rb') as encrypted:
         goal_mappings = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
     health_goal_strings = "Met Goals: {}\nUnmet Goals: {}\nUnsure Goals: {}".format(
-        ', '.join([goal_mappings[i] for i in raw['met_goals']]),
-        ', '.join(goal_mappings[i] for i in raw['unmet_goals']),
-        ', '.join(goal_mappings[i] for i in raw['unsure_goals'])
+        ', '.join([goal_mappings.get(i, '-') for i in raw['met_goals']]),
+        ', '.join(goal_mappings.get(i, '-') for i in raw['unmet_goals']),
+        ', '.join(goal_mappings.get(i, '-') for i in raw['unsure_goals'])
     ).strip()
     return({'health_goals_met' : health_goal_strings})
