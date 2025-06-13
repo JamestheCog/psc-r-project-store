@@ -40,7 +40,8 @@ def process_respondent_data(processed_forms,
         if ';' in response:
             rest_of_data[question] = ', '.join([i.split('-')[0].strip() for i in response.split(';')])
         elif '-' in response:
-            rest_of_data[question] = response.split('-')[0].strip()       
+            rest_of_data[question] = response.split('-')[0].strip()
+    print(processed_forms.get('health_goals'))
     health_goals = {i : process_health_goals(processed_forms.get(i)) for i in health_goal_columns}
     eq5d5l_data = dict(zip(eq5d5l_columns, list(map(process_eq5d5l, [processed_forms.get(i) for i in eq5d5l_columns]))))
     cfs_data = process_cfs({i : processed_forms.get(i, '-') for i in cfs_columns}) 
