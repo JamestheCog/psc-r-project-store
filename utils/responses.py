@@ -23,7 +23,7 @@ def process_health_goals(raw_goals, fernet_key = os.getenv('FERNET_KEY')):
     '''
     Given a patient's health goals, encode it.
     '''
-    raw_goals, decryptor = list(map(lambda x : x.lower(), raw_goals)), Fernet(rf'{fernet_key}')
+    raw_goals, decryptor = list(map(lambda x : x.lower().strip(), raw_goals.split(';'))), Fernet(rf'{fernet_key}')
     with open('./resources/mappings/health_goals.txt', 'rb') as encrypted:
         health_goals = json.loads(decryptor.decrypt(encrypted.read()).decode('utf-8'))
     conversions = [health_goals.get(i, '-') for i in raw_goals]
